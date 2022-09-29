@@ -36,4 +36,8 @@ def replace_gender(gender):
         return 'male'
     else:
         return 'diverse'
-    
+
+def load_df(model, occupation):
+    path = model + '_predictions/' + occupation + '.csv'
+    df = pd.read_csv(path, names=['sentence', 'label', 'prediction1', 'score1', 'prediction2', 'score2'])
+    return df

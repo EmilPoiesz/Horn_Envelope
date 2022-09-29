@@ -132,7 +132,9 @@ dmypy.json
 .vscode
 dataset.csv
 roberta-base_pred.csv
-roberta-base_pred.csv
+roberta-large_pred.csv
+bert-base-cased_pred.csv
+bert-large-cased_pred.csv
 data_dataframes/
 dataframes_cleaned/
 dataset_raw/
@@ -143,3 +145,6 @@ dataset_overview.csv
 occupations_updated.csv
 occupations.csv
 roberta-base_predictions/
+roberta-large_predictions/
+bert-large-cased_predictions/
+bert-base-cased_predictions/
