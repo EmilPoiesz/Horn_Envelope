@@ -37,7 +37,11 @@ def replace_gender(gender):
     else:
         return 'diverse'
 
-def load_df(model, occupation):
-    path = model + '_predictions/' + occupation + '.csv'
-    df = pd.read_csv(path, names=['sentence', 'label', 'prediction1', 'score1', 'prediction2', 'score2'])
+def load_df(model, occupation, new=False):
+    if new:
+        path = model + '_predictions_new/' + occupation + '.csv'
+        df = pd.read_csv(path, names=['sentence', 'label', 'he', 'she', 'they'])
+    else:
+        path = model + '_predictions/' + occupation + '.csv'
+        df = pd.read_csv(path, names=['sentence', 'label', 'prediction1', 'score1', 'prediction2', 'score2'])
     return df
