@@ -13,19 +13,21 @@ query =  """
         {nid} wdt:P31/wdt:P279* wd:Q56061 .
     }}
     """
-occ_list = import_occupations('occupations_updated.csv')
+occ_list = import_occupations('data/occupations_updated.csv')
 amounts = {}
 """
 nids = []
+#collect all unique nids from dataset
 for occupation in occ_list:
         name = occupation[0]
-        occ_file = 'data_dataframes/' + name + '.csv'
+        occ_file = 'data/data_dataframes/' + name + '.csv'
         df = pd.read_csv(occ_file)
         for index, row in df.iterrows():
             nid = row['nid']
             if nid not in nids:
                 nids.append(nid)
 
+#for each unique nid check, if its a country (instanceof (and subclass) of "administrative territorial entity"
 delete_nids = []
 for nid in nids:
     q = query.format(nid = 'wd:' + nid)
@@ -34,14 +36,14 @@ for nid in nids:
         print('Delete country \t' + nid)
         delete_nids.append(nid)
 print(delete_nids)
-with open('country_nids_del.csv', 'w') as f:
+with open('data/country_nids_del.csv', 'w') as f:
     f.write('\n'.join(delete_nids))
 """
-delete_nids = pd.read_csv('country_nids_del.csv', header=None).to_numpy()
+delete_nids = pd.read_csv('data/country_nids_del.csv', header=None).to_numpy()
 for occupation in occ_list:
     to_delete = []
     name = occupation[0]
-    occ_file = 'data_dataframes/' + name + '.csv'
+    occ_file = 'data/data_dataframes/' + name + '.csv'
     df = pd.read_csv(occ_file)
     old_total = len(df)
     for index, row in df.iterrows():
@@ -53,7 +55,7 @@ for occupation in occ_list:
     df = df.drop(to_delete)
     df = df.drop_duplicates(subset='name', keep='first')
     total_tuple = (old_total, len(df))
-    df.to_csv('dataframes_cleaned/' + name + '.csv', index=False)
+    df.to_csv('data/dataframes_cleaned/' + name + '.csv', index=False)
     amounts[name] = total_tuple
     print('Finished with ' + name)
 print(amounts)

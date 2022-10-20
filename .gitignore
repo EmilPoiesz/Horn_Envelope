@@ -130,29 +130,7 @@ dmypy.json
 
 # other files
 .vscode
-dataset.csv
-roberta-base_pred.csv
-roberta-base_pred_new.csv
-roberta-large_pred.csv
-roberta-large_pred_new.csv
-bert-base-cased_pred.csv
-bert-base-cased_pred_new.csv
-bert-large-cased_pred.csv
-bert-large-cased_pred_new.csv
-data_dataframes/
-dataframes_cleaned/
-dataset_raw/
+data/
+*.csv
+rule_extractor_original/
 figures/
-countries_with_nids_grammar.csv
-country_nids_del.csv
-dataset_overview.csv
-occupations_updated.csv
-occupations.csv
-roberta-base_predictions/
-roberta-base_predictions_new/
-roberta-large_predictions/
-bert-large-cased_predictions/
-bert-base-cased_predictions/
-roberta-large_predictions_new/
-bert-large-cased_prediction_new/
-bert-base-cased_predictions_new/

@@ -7,7 +7,7 @@ models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased'
 for model in models:
     print('===== ' + model + ' =====')
     unmasker = pipeline('fill-mask', model=model)
-    data = pd.read_csv('dataset.csv', header=None, names=['sentence', 'label'])
+    data = pd.read_csv('data/dataset.csv', header=None, names=['sentence', 'label'])
     data['he'] = 0.0
     data['she'] = 0.0
     data['they'] = 0.0
@@ -26,4 +26,4 @@ for model in models:
                 data.at[index, 'they'] = r['score']
         if index%50000 == 0:
             print('Finished with row number ' + str(index))
-    data.to_csv(model + '_pred_new.csv')
+    data.to_csv('data/' + model + '_pred_new.csv')
