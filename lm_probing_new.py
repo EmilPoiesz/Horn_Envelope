@@ -1,6 +1,7 @@
 from transformers import pipeline
 import pandas as pd
 import numpy as np
+from helper_functions import *
 
 models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
 
@@ -12,11 +13,7 @@ for model in models:
     data['she'] = 0.0
     data['they'] = 0.0
     for index, row in data.iterrows():
-        if model == 'bert-base-cased' or model == 'bert-large-cased':
-            sentence = row['sentence'].replace('<mask>', '[MASK]')
-        else:
-            sentence = row['sentence']
-        result = unmasker(sentence)
+        result = lm_inference(unmasker, row['sentence'], model)
         for r in result:
             if r['token_str'] == 'She':
                 data.at[index, 'she'] = r['score']
