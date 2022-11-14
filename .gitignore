@@ -134,3 +134,4 @@ data/
 *.csv
 rule_extractor_original/
 figures/
+*.txt

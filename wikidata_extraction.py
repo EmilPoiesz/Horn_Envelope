@@ -38,6 +38,7 @@ def buildquery(occupation):
 #   save results for each occupation in separate json file in dataset folder
 
 url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
+headers = {'User-Agent' : 'MasterThesisQueryBot (sbl009@uib.no)'}
 filename = "data/occupations.csv"
 occ_list = import_occupations(filename)
 occ_list_new = []
@@ -47,7 +48,7 @@ for occupation in occ_list:
     id = occupation[1]
     name = occupation[0]
     # get the data from wikidata
-    data = requests.get(url ,params={'query': buildquery(id), 'format': 'json'}).json()
+    data = requests.get(url ,params={'query': buildquery(id), 'format': 'json'}, headers=headers).json()
     print("Queried for " + name + " and found " + str(len(data['results']['bindings'])) + " results in wikidata.")
     #if there are results, continue execution
     if len(data['results']['bindings']) > 0:

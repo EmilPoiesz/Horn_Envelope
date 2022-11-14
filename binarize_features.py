@@ -29,7 +29,9 @@ class Binarizer:
     def initialize_countries(self, country_file : str):
         country_list = pd.read_csv(country_file, names=['cid', ' country', 'continent']).set_index('cid').fillna('?')
         continents = country_list.continent.unique()
+        continents = np.delete(continents, np.where(continents == '?'))
         continent_lookup = {continents[i] : i for i in range(len(continents))}
+        # remove unknown as a lookup value, is represented by all zeroes vector!
         return continent_lookup
     
     def initialize_occupations(self, occupation):
@@ -45,7 +47,10 @@ class Binarizer:
         return {occupations[i] : i for i in range(len(occupations))}
 
     def data_to_binary(self, data : list):
-        """ Data comes in the form of 3 attributes: birthyear, country-id and occupation (as a list)"""
+        """ 
+            Data comes in the form of 3 attributes: birthyear, country-id and occupation (as a list)
+            Continent must be a known value! -> no '?' allowed
+        """
         birth = self.get_container(data[0])
         continent = self.binarize_string(self.get_continent(data[1]), kind = 'continent')
         occupation = self.binarize_string(data[2], kind = 'occupation')
@@ -82,6 +87,7 @@ class Binarizer:
         return self.country_list.at[cid, 'continent']
 
     def binarize_string(self, input : str, kind = 'continent'):
+        #doesn't deal with unknown continent!
         lookup = self.get_lookup(kind)
         vector = np.zeros(len(lookup), dtype=np.int8)
         vector[lookup[input]] = 1
@@ -118,48 +124,3 @@ class Binarizer:
         birth = self.reverse_container(splitted[0])
         sentence = "<mask> was born {birth} in {continent} and is a {occupation}."
         return sentence.format(birth=birth, continent=continent, occupation=occupation)
-
-    def is_assignment_valid(self, assignment):
-        bin = np.array(assignment)
-        i_birth = len(self.age_containers)+1
-        i_continent = i_birth + len(self.continent_lookup)
-        splitted = np.split(bin, [i_birth, i_continent])
-        verb = False
-        for i,arr in enumerate(splitted):
-            if len(np.nonzero(arr)[0]) == 0:
-                # no one in vector: take random
-                verb = True
-                vec = np.zeros(len(arr), dtype=np.int8)
-                idx = random.sample(range(len(arr)), k=1)
-                vec[idx] = 1
-                splitted[i] = vec
-            elif len(np.nonzero(arr)[0]) > 1:
-                # multiple 1 in vector: take first one
-                verb = True
-                vec = np.zeros(len(arr), dtype=np.int8)
-                idx = np.nonzero(arr)[0][0]
-                vec[idx] = 1
-                splitted[i] = vec
-        if verb:
-            print("Wrong assignment: ", assignment)
-            print("Swap out with adjusted.")
-            return np.concatenate(splitted)
-        else:
-            return assignment
-
-
-"""
-binarizer = Binarizer('data/country_list_continents.csv', 'data/occupations_updated.csv', 5, new_occ_file=False)
-data = [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-print(binarizer.is_assignment_valid(data))
-
-data = []
-for index, row in df.iterrows():
-    list_row = [row['birth'], row['nid'], occ]
-    data.append(list_row)
-
-p = [df.at[0,'birth'], df.at[0,'nid'], occ]
-binary = binarizer.data_to_binary(p)
-print(p)
-print(binary)
-print(binarizer.sentence_from_binary(binary))"""
