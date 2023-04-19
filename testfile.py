@@ -1,21 +1,20 @@
-from itertools import count
-from regex import F
-import requests 
-import json
-import pandas as pd
 from helper_functions import *
 from transformers import pipeline
+import timeit
+"""
+lm = 'bert-large-cased'
+sentence = "<mask> was born between 1934 and 1956 in South America and is a singer."
+unmasker = pipeline('fill-mask', model=lm)
 
-def initialize_occupations(occupation):
-        if isinstance(occupation, str):
-            occupations = pd.read_csv(occupation).to_numpy().flatten()
-        elif isinstance(occupation, int):
-            df = pd.read_csv('data/occupations_total.csv', index_col=0)
-            sorted = df.sort_values(by=['total'], ignore_index=True)
-            reduced = sorted[sorted['total'] >= occupation]
-            occupations = reduced[['occupation']].to_numpy().flatten()
-        else :
-            occupations = []
-        return {occupations[i] : i for i in range(len(occupations))}
-
-print(initialize_occupations('data/occupations.csv'))
+total = []
+for i in range(1000):
+    start = timeit.default_timer()
+    classification = get_prediction(lm_inference(unmasker, sentence, model=lm))
+    stop = timeit.default_timer()
+    runtime = stop-start
+    total.append(runtime)
+total_np = np.array(total)
+print("Mean: ", np.mean(total_np))
+print("Variance: ", np.var(total_np))
+"""
+unmasker = pipeline('fill-mask', model='bert-base-cased')

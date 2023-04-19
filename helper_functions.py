@@ -15,21 +15,26 @@ def get_pronoun(gender):
     else:
         return 'they'
 
-def get_birth(birth_data):
-    if birth_data['type'] == 'uri':
-        return "unknown"
-    elif birth_data['type'] == 'literal':
-        value = birth_data['value'].split('-')
-        if len(value[0]) > 0:
-            #birthyear AD
-            return value[0]
-        else:
-            #birthyear BC
-            return str(value[1]) + " BC"
-
+def get_birth(dataitem):
+    if 'birth' in dataitem:
+        if dataitem['birth']['type'] == 'uri':
+            return '?'
+        elif dataitem['birth']['type'] == 'literal':
+            value = dataitem['birth']['value'].split('-')
+            if len(value[0]) > 0:
+                #birthyear AD
+                return value[0]
+            else:
+                #birthyear BC
+                return str(value[1]) + " BC"
+    else:
+        return '?'
 def get_nid(nid_data):
-    value = nid_data['value'].split('/')
-    return value[-1]
+    if nid_data == '?':
+        return '?'
+    else:
+        value = nid_data.split('/')
+        return value[-1]
 
 def replace_gender(gender):
     if gender == 'female' or gender == 'transgender female' or gender == 'cisgender female':
@@ -37,15 +42,26 @@ def replace_gender(gender):
     elif gender == 'male' or gender == 'transgender male' or gender == 'cisgender male':
         return 'male'
     else:
-        return 'diverse'
+        return 'diverse' 
 
-def load_pred_df(model, occupation, new=False):
-    if new:
-        path = 'data/' + model + '_predictions_new/' + occupation + '.csv'
-        df = pd.read_csv(path, names=['sentence', 'label', 'he', 'she', 'they'])
+def return_if_exists(dataitem, field):
+    if field in dataitem:
+        return dataitem[field]['value']
     else:
-        path = 'data/' + model + '_predictions/' + occupation + '.csv'
-        df = pd.read_csv(path, names=['sentence', 'label', 'prediction1', 'score1', 'prediction2', 'score2'])
+        return '?'
+
+def load_pred_df(model, occupation, short=False):
+    if short:
+        path = 'data_new/probing_' + model + '/' + occupation + '.csv'
+        df = pd.read_csv(path)
+    else:
+        path = 'data_new/probing_' + model + '/' + occupation + '_format.csv'
+        df = pd.read_csv(path)
+    return df
+
+def load_pred_df_new(model, occupation):
+    path = 'data_new/probing_' + model + '/' + occupation + '_format.csv'
+    df = pd.read_csv(path, index_col = 0, low_memory=False)
     return df
 
 def evaluate_predictions(model, occ_names, path=None):
@@ -53,7 +69,7 @@ def evaluate_predictions(model, occ_names, path=None):
     he_p = []
     ppbs = []
     for occupation in occ_names:
-        data = load_pred_df(model, occupation, new=True)
+        data = load_pred_df(model, occupation, short=True)
         data['she_p'] = data['she'] / (data['she'] + data['he'])
         data['he_p'] = data['he'] / (data['she'] + data['he'])
         data['ppbs'] = data['he_p'] - data['she_p']
@@ -73,6 +89,18 @@ def get_matrix(model, occ_list):
         matrix = pd.DataFrame(np.zeros((3,3)), index=['he', 'she', 'they'], columns=['He', 'She', 'They'])
         occ_name = occ[0]
         df = load_pred_df(model, occ_name)
+        grouped = df.groupby(['label', 'prediction1']).size()
+        for index in grouped.keys():
+            matrix.at[index] = grouped[index]
+        occupation_matrices[occ_name] = matrix.fillna(0).transpose()
+    return occupation_matrices
+
+def get_matrix_subset(model, occ_list):
+    occupation_matrices = {} #holds all confusion matrices
+
+    for occ_name in occ_list:
+        matrix = pd.DataFrame(np.zeros((3,3)), index=['he', 'she', 'they'], columns=['He', 'She', 'They'])
+        df = load_pred_df_new(model, occ_name)
         grouped = df.groupby(['label', 'prediction1']).size()
         for index in grouped.keys():
             matrix.at[index] = grouped[index]

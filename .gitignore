@@ -135,3 +135,5 @@ data/
 rule_extractor_original/
 figures/
 *.txt
+data_new/
+roberta-base_rules.txt
