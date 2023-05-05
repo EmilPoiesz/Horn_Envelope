@@ -4,14 +4,14 @@ import numpy as np
 from helper_functions import *
 
 models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-occ_list = import_occupations('data_new/occupations_updated.csv')
+occ_list = import_occupations('data/occupations_updated.csv')
 
 for model in models:
     print('===== ' + model + ' =====')
     unmasker = pipeline('fill-mask', model=model)
     for occupation in occ_list:
         name = occupation[0]
-        data = pd.read_csv('data_new/dataset_refac/' + name + '.csv', header=None, names=['sentence', 'label'])
+        data = pd.read_csv('data/dataset_refac/' + name + '.csv', header=None, names=['sentence', 'label'])
         data['he'] = 0.0
         data['she'] = 0.0
         data['they'] = 0.0
@@ -36,7 +36,7 @@ for model in models:
             data_format.at[index, 'prediction2'] = result[1]['token_str']
             data_format.at[index, 'score1'] = result[0]['score']
             data_format.at[index, 'score2'] = result[1]['score']
-        data.to_csv('data_new/probing_' + model + '/' + name + '.csv')
-        data_format.to_csv('data_new/probing_' + model + '/' + name + '_format.csv')
+        data.to_csv('data/probing_' + model + '/' + name + '.csv')
+        data_format.to_csv('data/probing_' + model + '/' + name + '_format.csv')
         print('Finished with {occupation}'.format(occupation=name))
         

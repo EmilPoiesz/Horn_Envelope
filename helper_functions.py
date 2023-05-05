@@ -52,15 +52,15 @@ def return_if_exists(dataitem, field):
 
 def load_pred_df(model, occupation, short=False):
     if short:
-        path = 'data_new/probing_' + model + '/' + occupation + '.csv'
+        path = 'data/probing_' + model + '/' + occupation + '.csv'
         df = pd.read_csv(path)
     else:
-        path = 'data_new/probing_' + model + '/' + occupation + '_format.csv'
+        path = 'data/probing_' + model + '/' + occupation + '_format.csv'
         df = pd.read_csv(path)
     return df
 
 def load_pred_df_new(model, occupation):
-    path = 'data_new/probing_' + model + '/' + occupation + '_format.csv'
+    path = 'data/probing_' + model + '/' + occupation + '_format.csv'
     df = pd.read_csv(path, index_col = 0, low_memory=False)
     return df
 

@@ -39,7 +39,7 @@ def buildquery(occupation):
 
 url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
 headers = {'User-Agent' : 'MasterThesisQueryBot (sbl009@uib.no)'}
-filename = "data_new/occupations.csv"
+filename = "data/occupations.csv"
 occ_list = import_occupations(filename)
 occ_list_new = []
 
@@ -68,17 +68,17 @@ for occupation in occ_list:
             #if there are results after the cleanup, continue execution
             if len(occ_data) > 0:
                 #save cleaned dataframe 
-                file = 'data_new/data_dataframes/' + name + '.csv'
+                file = 'data/data_dataframes/' + name + '.csv'
                 df = pd.DataFrame(occ_data)
                 #df = df.drop_duplicates(subset='name', keep='first')
                 print("\tAfter cleanup: " + str(len(df)) + " datapoints left")
                 df.to_csv(file, index=False)
                 #save uncleaned raw data seperately
-                occ_file = 'data_new/dataset_raw/' + name + '.json'
+                occ_file = 'data/dataset_raw/' + name + '.json'
                 with open(occ_file, 'w') as outfile:
                     json.dump(data, outfile)
                 #keep track of occupations that are actually saved as datapoints
                 occ_list_new.append(occupation)
 
 occ_df = pd.DataFrame(occ_list_new)
-occ_df.to_csv('data_new/occupations_updated.csv', index=None, header=None)
+occ_df.to_csv('data/occupations_updated.csv', index=None, header=None)

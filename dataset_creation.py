@@ -1,6 +1,11 @@
 import pandas as pd
 from helper_functions import *
 
+"""
+    Goes through all the data files and creates sentence/label pairs
+    This is, what can be fed into the language model
+"""
+
 sentence = "<mask> was born in {birthyear} in {nationality} and is a {occupation}."
 occ_list = import_occupations("data/occupations_updated.csv")
 

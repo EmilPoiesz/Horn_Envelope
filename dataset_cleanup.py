@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from binarize_features import *
 
-occ_list = import_occupations('data_new/occupations_updated.csv')
+occ_list = import_occupations('data/occupations_updated.csv')
 
 url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
 headers = {'User-Agent' : 'MasterThesisQueryBot (sbl009@uib.no)'}
@@ -20,15 +20,18 @@ query =  """
         {{{nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q3024240}}
     }}
     """
+
+#The first part is to seperate out those countries, that are not actual countries according to wikidata (their nid is not a country)
+
 """
 # Q6256 is wikidata country
-occ_list = import_occupations('data_new/occupations_updated.csv')
+occ_list = import_occupations('data/occupations_updated.csv')
 amounts = {}
 nids = []
 #collect all unique nids from dataset
 for occupation in occ_list:
         name = occupation[0]
-        occ_file = 'data_new/data_dataframes/' + name + '.csv'
+        occ_file = 'data/data_dataframes/' + name + '.csv'
         df = pd.read_csv(occ_file)
         for index, row in df.iterrows():
             nid = row['nid']
@@ -44,15 +47,23 @@ for nid in nids:
         print('Delete country \t' + nid)
         delete_nids.append(nid)
 print(delete_nids)
-with open('data_new/country_nids_del.csv', 'w') as f:
+with open('data/country_nids_del.csv', 'w') as f:
     f.write('\n'.join(delete_nids))
 """
+
+"""
+Cleanup thats done on the data:
+    Get all those countries that are supposed to be deleted and remove their datapoint from the data
+    ort gender into 3 categories
+    delete duplicate names (multiple datapoints for the same entity)
+"""
+
 amounts = {}
-delete_nids = pd.read_csv('data_new/country_nids_del.csv', header=None).to_numpy()
+delete_nids = pd.read_csv('data/country_nids_del.csv', header=None).to_numpy()
 for occupation in occ_list:
     to_delete = []
     name = occupation[0]
-    occ_file = 'data_new/data_dataframes/' + name + '.csv'
+    occ_file = 'data/data_dataframes/' + name + '.csv'
     df = pd.read_csv(occ_file)
     old_total = len(df)
     for index, row in df.iterrows():
@@ -67,7 +78,7 @@ for occupation in occ_list:
     df = df.drop_duplicates(subset='name', keep='first')
     df = df.drop_duplicates(keep='first')
     total_tuple = (old_total, len(df))
-    df.to_csv('data_new/dataframes_cleaned/' + name + '.csv', index=False)
+    df.to_csv('data/dataframes_cleaned/' + name + '.csv', index=False)
     amounts[name] = total_tuple
     print('Finished with ' + name)
 print(amounts)

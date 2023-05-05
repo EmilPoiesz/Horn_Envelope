@@ -23,7 +23,7 @@ class Binarizer:
     def __init__(self, country_file : str, amount_containers: int, occupation):
         self.continent_lookup = self.initialize_countries(country_file)
         self.occupation_lookup = self.initialize_occupations(occupation)
-        self.age_containers = pd.read_csv('data_new/age_containers' + str(amount_containers) + '.csv', header=None).to_numpy().flatten()
+        self.age_containers = pd.read_csv('data/age_containers' + str(amount_containers) + '.csv', header=None).to_numpy().flatten()
         self.lengths = {'birth' : amount_containers, 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
 
     def initialize_countries(self, country_file : str):

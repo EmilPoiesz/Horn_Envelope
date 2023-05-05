@@ -106,12 +106,12 @@ def get_relevant_implications(implications, negations, total_lookup):
     return implication_strings
 
 def load_rules(lm, eq, e):
-    with open('data_new/rule_extraction_final/results/' + lm + '_rules_' + str(eq) + '_' + str(e) + '.txt', 'rb') as f:
+    with open('data/rule_extraction/results/' + lm + '_rules_' + str(eq) + '_' + str(e) + '.txt', 'rb') as f:
         h = pickle.load(f)
     return h
 
 def load_background():
-    with open('data_new/background.txt', 'rb') as f:
+    with open('data/background.txt', 'rb') as f:
         background = pickle.load(f)
     return background
 
@@ -133,7 +133,7 @@ def print_all_counted_rules(negations, implications, lookup):
             print("{:.3f}  :  {rule}".format(count/10, rule=rule_string))
 
 def get_data_dict(lm, eq, e):
-    with open('data_new/rule_extraction_final/results/{lm}_metadata_{eq}_{experiment}.json'.format(lm=lm, eq=eq, experiment=e)) as f:
+    with open('data/rule_extraction/results/{lm}_metadata_{eq}_{experiment}.json'.format(lm=lm, eq=eq, experiment=e)) as f:
         data = f.read()
     return json.loads(data)
 
