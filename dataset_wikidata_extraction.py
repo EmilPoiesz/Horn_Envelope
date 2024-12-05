@@ -4,7 +4,22 @@ import pandas as pd
 from helper_functions import *
 
 def buildquery(occupation):
-    #function to insert the occupation id properly into the correct query
+    # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
+    # Read more on the use and need or User-Agent: https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
+    #
+    # Optional means to take information if present but not exclude those 
+    # without the information. 
+    #
+    # PREFIX helps shorten uri's
+
+    # wdt:P106 - occupation
+    # wdt:P27  - country of citizenship
+    # wdt:P21  - sex and gender
+    #
+    # OPTIONAL:
+    # wdt:P569 - date of birth
+    # filter [country of citizenship | individual | gender] to use english language names
+    
     basequery = """
     PREFIX wikibase: <http://wikiba.se/ontology#>
     PREFIX wd: <http://www.wikidata.org/entity/>
@@ -33,27 +48,33 @@ def buildquery(occupation):
     occ_id = "wd:" + occupation
     return basequery.format(occ = occ_id)
 
-#MAIN PART:
-#   import the occupations and query wikidata for each of them
-#   save results for each occupation in separate json file in dataset folder
+if __name__ == "__main__":
+    url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
 
-url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
-headers = {'User-Agent' : 'MasterThesisQueryBot (sbl009@uib.no)'}
-filename = "data/occupations.csv"
-occ_list = import_occupations(filename)
-occ_list_new = []
+    # running automated queries we need to add 'bot' to the name of the agent. Also provide a way to be contacted (like an email).
+    headers  = {'User-Agent' : 'HornEnvelopeLearnerOccupationRetrivalQueryBot (emilpo@uio.no)'} 
+    filename = "occupations.csv"
 
-#query all occupations
-for occupation in occ_list:
-    id = occupation[1]
-    name = occupation[0]
-    if name == 'actor' :
-        # get the data from wikidata
+
+    # import occupations from csv.
+    occ_list = pd.read_csv(filename, header=None).to_numpy()
+    occ_list_new = []
+
+    #query all occupations
+    for occupation in occ_list:
+        id   = occupation[1]
+        name = occupation[0]
+
+        #if name == 'actor' : #Why only when name is 'actor'?
+            
+        # Send a request to Wikidata
         data = requests.get(url ,params={'query': buildquery(id), 'format': 'json'}, headers=headers).json()
         print("Queried for " + name + " and found " + str(len(data['results']['bindings'])) + " results in wikidata.")
+        
         #if there are results, continue execution
         if len(data['results']['bindings']) > 0:
             occ_data = []
+            
             for item in data['results']['bindings']:
             #just keep entries that have a gender for classification result comparison
                 if 'gender' in item:
@@ -65,6 +86,7 @@ for occupation in occ_list:
                     'nationality': return_if_exists(item, 'nationality'),
                     'nid': get_nid(return_if_exists(item, 'nid'))
                     })
+
             #if there are results after the cleanup, continue execution
             if len(occ_data) > 0:
                 #save cleaned dataframe 
@@ -80,5 +102,5 @@ for occupation in occ_list:
                 #keep track of occupations that are actually saved as datapoints
                 occ_list_new.append(occupation)
 
-occ_df = pd.DataFrame(occ_list_new)
-occ_df.to_csv('data/occupations_updated.csv', index=None, header=None)
+    occ_df = pd.DataFrame(occ_list_new)
+    occ_df.to_csv('data/occupations_updated.csv', index=None, header=None)
