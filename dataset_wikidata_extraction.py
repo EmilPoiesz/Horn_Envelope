@@ -2,7 +2,6 @@ import requests
 import json
 import os
 import pandas as pd
-from helper_functions import *
 
 def build_occupation_query(occupation, limit, offset):
     # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
