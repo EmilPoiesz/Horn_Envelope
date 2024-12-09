@@ -168,6 +168,7 @@ if __name__ == "__main__":
     else: 
         occupations_new = pd.read_csv("occupations.csv", header=None)
     
+    # If new occupations were discovered we query wikidata.
     if len(occupations_new) > 0: 
         query_wikidata(occupations_new.to_numpy())
         occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
@@ -185,10 +186,9 @@ if __name__ == "__main__":
     for occupation in occ_to_verify:
         occupation_name = occupation[0]
         occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
-        
         nIDs.update(occupation_df['nationalityID'].unique())
 
-    # For each unique nID check if it is instance (and subclass) of "country" or "state".
+    # For each unique nID check if it is instance (and subclass) of "country" or "state" in wikidata.
     for nID in nIDs:
         if nID in nIDs_valid: continue  # Skip if its already a known country
         query = build_verification_query(nid=nID)
@@ -200,8 +200,8 @@ if __name__ == "__main__":
     nIDs_valid_df = pd.DataFrame(list(nIDs_valid.items()), columns=['nID', 'is_valid'])
     nIDs_valid_df.to_csv('data/nIDs_valid.csv', index=False)
 
-    # Remove invalid countires from each occupations list.
-    # Refactor gender at the same time.
+    # Remove entries with invalid countires from each occupations list.
+    # Refactor gender if entry is kept.
     amounts = {}
     for occupation in occupations_extracted.values:
         idx_to_delete = []
