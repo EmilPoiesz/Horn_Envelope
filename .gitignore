@@ -130,9 +130,10 @@ dmypy.json
 
 # other files
 .vscode
-data/
+*.csv
 rule_extractor_original/
 figures/
 *.txt
+*json
 data_new/
 roberta-base_rules.txt

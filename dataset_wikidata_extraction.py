@@ -1,9 +1,10 @@
 import requests 
 import json
+import os
 import pandas as pd
 from helper_functions import *
 
-def buildquery(occupation, limit=1_000_000, offset=0):
+def build_occupation_query(occupation, limit, offset):
     # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
     # Read more on the use and need or User-Agent: https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
     #
@@ -22,7 +23,7 @@ def buildquery(occupation, limit=1_000_000, offset=0):
     # OPTIONAL:
     # filter individual to use english language names
     
-    basequery = """
+    query = """
     PREFIX wikibase: <http://wikiba.se/ontology#>
     PREFIX wd: <http://www.wikidata.org/entity/>
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -44,8 +45,38 @@ def buildquery(occupation, limit=1_000_000, offset=0):
     LIMIT {limit} 
     OFFSET {offset}
     """
-    return basequery.format(occupationID = occupation, limit=limit, offset=offset)
+    return query.format(occupationID = occupation, limit=limit, offset=offset)
 
+def build_verification_query(nid):
+    
+    # Q6256 - Country
+    # Q7275 - State
+    # Q3024240 - Historical Country
+
+    # P31 - Instance of
+    # P17 - country
+    # P279 - Subclass of
+
+    # {nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q6256}
+    # means that nid is matched with instance of (wdt:P31) zero or more (*) followed by (/) country (wdt:P17)
+    # zero or more optional (?) follwed by (/) one instance of (P31) subclass of (P279) zero or more (*) country (wd:Q6256)
+
+    # The full query asks (true/false) if {nid} is is matched with any Country, State, or Historical Country. 
+
+    query =  """
+        PREFIX wikibase: <http://wikiba.se/ontology#>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+        ASK {{
+            {{{nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q6256}}
+            UNION
+            {{{nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q7275}}
+            UNION
+            {{{nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q3024240}}
+        }}
+        """
+    return query.format(nid='wd:' + nid)
 
 def fetch_data(occupation_id, occupation_name, limit=10_000):
     # For very large queries it is good practice to break it up 
@@ -56,7 +87,7 @@ def fetch_data(occupation_id, occupation_name, limit=10_000):
     
     while True:
         # Build the query with the current offset
-        query = buildquery(occupation_id, limit=limit, offset=offset)
+        query = build_occupation_query(occupation_id, limit=limit, offset=offset)
         response = requests.get(url, params={'query': query, 'format': 'json'}, headers=headers)
         
         try:
@@ -77,27 +108,19 @@ def fetch_data(occupation_id, occupation_name, limit=10_000):
 
     return all_results
 
+def query_wikidata(occupation_list):
 
-if __name__ == "__main__":
-
-    # When running automated queries we need to add 'bot' to the name of the agent. 
-    # Also provide a way to be contacted (like an email).
-    url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
-    headers  = {'User-Agent' : 'HornEnvelopeLearnerOccupationRetrivalQueryBot (emilpo@uio.no)'} 
-    occ_lst_filename = "occupations.csv"
-
-    # Read list of occupations from csv.
-    occupation_list = pd.read_csv(occ_lst_filename, header=None).to_numpy()
     occupation_list_clean = []
-
-    # Query all occupations
+    # Query wikidata for all occupations
     for occupation in occupation_list:
         occupation_id   = occupation[1]
         occupation_name = occupation[0]
-            
+        
+        # Make the query
         results = fetch_data(occupation_id, occupation_name)
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
+        # Process the results
         if len(results) > 0:
             occupation_data = []
             
@@ -111,17 +134,108 @@ if __name__ == "__main__":
                 })
 
             # Save the dataframe as CSV
-            file = 'data/data_dataframes/' + occupation_name + '.csv'
             df = pd.DataFrame(occupation_data)
-            df.to_csv(file, index=False)
+            df.to_csv(f'data/csv/{occupation_name}.csv', index=False)
 
             # Save raw JSON data
-            occ_file = 'data/dataset_raw/' + occupation_name + '.json'
-            with open(occ_file, 'w') as outfile:
+            with open(f'data/json/{occupation_name}.json', 'w') as outfile:
                 json.dump(results, outfile)
 
-            # Keep track of stored occupations
+            # Keep track of extracted occupations
             occupation_list_clean.append(occupation)
 
-    df_occupations = pd.DataFrame(occupation_list_clean)
-    df_occupations.to_csv('data/occupations_updated.csv', index=None, header=None)
+    if os.path.exists('data/occupations_extracted.csv'):
+        df_occupations = pd.read_csv('data/occupations_extracted.csv')
+        df_occupations = pd.concat([df_occupations, pd.DataFrame(occupation_list_clean)])
+    else:
+        df_occupations = pd.DataFrame(occupation_list_clean)
+    df_occupations.to_csv('data/occupations_extracted.csv', index=None, header=None)
+
+if __name__ == "__main__":
+
+    # When running automated queries we need to add 'bot' to the name of the agent. 
+    # Also provide a way to be contacted (like an email).
+    url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
+    headers  = {'User-Agent' : 'HornEnvelopeLearnerOccupationRetrivalQueryBot (emilpo@uio.no)'} 
+
+    # Get list of new occupations
+    if os.path.exists('data/occupations_extracted.csv'):
+        # Merges the list of occupations with those we have already extracted
+        # making sure we only query for new occupations to limit the amount of queries.
+        occupations = pd.read_csv("occupations.csv", header=None)
+        occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
+        occupations_combined = pd.merge(occupations_extracted, occupations, how='outer', indicator=True)
+        occupations_new = occupations_combined[occupations_combined['_merge'] == 'left_only']
+    else: 
+        occupations_new = pd.read_csv("occupations.csv", header=None)
+    
+    if len(occupations_new) > 0: 
+        query_wikidata(occupations_new.to_numpy())
+        occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
+
+    # Load list of known countries.
+    if os.path.exists('data/nIDs_valid.csv'):
+        nIDs_valid = pd.read_csv('data/nIDs_valid.csv').set_index('nID')['is_valid'].to_dict()
+        occ_to_verify = occupations_new.values
+    else:
+        nIDs_valid = {}
+        occ_to_verify = occupations_extracted.values
+
+    # Collect all unique nationalityIDs from the new occupations list.
+    nIDs = set()
+    for occupation in occ_to_verify:
+        occupation_name = occupation[0]
+        occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
+        
+        nIDs.update(occupation_df['nationalityID'].unique())
+
+    # For each unique nID check if it is instance (and subclass) of "country" or "state".
+    for nID in nIDs:
+        if nID in nIDs_valid: continue  # Skip if its already a known country
+        query = build_verification_query(nid=nID)
+        response = requests.get(url, params={'query': query, 'format': 'json'}, headers=headers).json()
+        nID_is_valid = response['boolean']
+        nIDs_valid[nID] = nID_is_valid
+
+    # Convert dictionary to DataFrame and save updated list of valid and invalid countries.
+    nIDs_valid_df = pd.DataFrame(list(nIDs_valid.items()), columns=['nID', 'is_valid'])
+    nIDs_valid_df.to_csv('data/nIDs_valid.csv', index=False)
+
+    # Remove invalid countires from each occupations list.
+    # Refactor gender at the same time.
+    amounts = {}
+    for occupation in occupations_extracted.values:
+        idx_to_delete = []
+        occupation_name = occupation[0]
+        occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
+        total_pre_cleanup = len(occupation_df)
+
+        for idx, row in occupation_df.iterrows():
+            # Check if row should be deleted
+            nID = row['nationalityID']            
+            if not nIDs_valid[nID]: 
+                idx_to_delete.append(idx)
+                continue
+
+            # Standardize gender if row is kept
+            gender = row['gender']
+            is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
+            is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
+            occupation_df.at[idx,'gender'] = 'female' if is_female else 'male' if is_male else 'other'
+            
+        # Drop rows with invalid countries  
+        occupation_df = occupation_df.drop(idx_to_delete)
+        occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
+        occupation_df = occupation_df.drop_duplicates(keep='first')
+        total_post_cleanup = len(occupation_df)
+
+        # Save clean data to file
+        occupation_df.to_csv(f'data/csv_clean/{occupation_name}.csv', index=False)
+        amounts[occupation_name] = (total_pre_cleanup, total_post_cleanup)
+        print(f'Cleaned up {occupation_name}')
+    print(amounts)
+
+
+    
+
+    

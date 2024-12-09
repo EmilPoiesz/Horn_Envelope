@@ -1,7 +1,12 @@
+####################################################################################
+# THIS FILE HAS BEEN REFACTORED AND IS NO LONGER NEEDED.                           #
+# THE FUNCTIONALITY OF THIS FILE HAS BEEN MOVED TO dataset_wikidata_extraction.py  #
+####################################################################################
+
 from helper_functions import *
 import pandas as pd
 import requests
-from binarize_features import *
+#from binarize_features import *
 
 occ_list = import_occupations('data/occupations_updated.csv')
 
@@ -22,6 +27,21 @@ query =  """
     """
 
 #The first part is to seperate out those countries, that are not actual countries according to wikidata (their nid is not a country)
+
+
+# Q6256 - Country
+# Q7275 - State
+# Q3024240 - Historical Country
+
+# P31 - Instance of
+# P17 - country
+# P279 - Subclass of
+
+# {nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q6256}
+# means that nid is matched with instance of (wdt:P31) zero or more (*) followed by (/) country (wdt:P17)
+# zero or more optional (?) follwed by (/) one instance of (P31) subclass of (P279) zero or more (*) country (wd:Q6256)
+
+# The full query asks (true/false) if {nid} is is matched with any Country, State, or Historical Country. 
 
 """
 # Q6256 is wikidata country
