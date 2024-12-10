@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import pandas as pd
+from helper_functions import *
 
 def build_occupation_query(occupation, limit, offset):
     # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
@@ -116,6 +117,7 @@ def query_wikidata(occupation_list):
         occupation_name = occupation[0]
         
         # Make the query
+        print(f'We are querying for {occupation_name}.')
         results = fetch_data(occupation_id, occupation_name)
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
@@ -144,7 +146,7 @@ def query_wikidata(occupation_list):
             occupation_list_clean.append(occupation)
 
     if os.path.exists('data/occupations_extracted.csv'):
-        df_occupations = pd.read_csv('data/occupations_extracted.csv')
+        df_occupations = pd.read_csv('data/occupations_extracted.csv', header=None)
         df_occupations = pd.concat([df_occupations, pd.DataFrame(occupation_list_clean)])
     else:
         df_occupations = pd.DataFrame(occupation_list_clean)
@@ -163,8 +165,7 @@ if __name__ == "__main__":
         # making sure we only query for new occupations to limit the amount of queries.
         occupations = pd.read_csv("occupations.csv", header=None)
         occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
-        occupations_combined = pd.merge(occupations_extracted, occupations, how='outer', indicator=True)
-        occupations_new = occupations_combined[occupations_combined['_merge'] == 'left_only']
+        occupations_new = occupations[~occupations[0].isin(occupations_extracted[0])]
     else: 
         occupations_new = pd.read_csv("occupations.csv", header=None)
     
@@ -176,19 +177,18 @@ if __name__ == "__main__":
     # Load list of known countries.
     if os.path.exists('data/nIDs_valid.csv'):
         nIDs_valid = pd.read_csv('data/nIDs_valid.csv').set_index('nID')['is_valid'].to_dict()
-        occ_to_verify = occupations_new.values
     else:
         nIDs_valid = {}
-        occ_to_verify = occupations_extracted.values
 
     # Collect all unique nationalityIDs from the new occupations list.
     nIDs = set()
-    for occupation in occ_to_verify:
+    for occupation in occupations_extracted.values:
         occupation_name = occupation[0]
         occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
         nIDs.update(occupation_df['nationalityID'].unique())
 
     # For each unique nID check if it is instance (and subclass) of "country" or "state" in wikidata.
+    print('Querying wikidata to verify new nationalities')
     for nID in nIDs:
         if nID in nIDs_valid: continue  # Skip if its already a known country
         query = build_verification_query(nid=nID)
