@@ -187,7 +187,6 @@ def standardize_gender(gender):
     is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
     return 'female' if is_female else 'male' if is_male else 'other'
 
-
 if __name__ == "__main__":
 
     # When running automated queries we need to add 'bot' to the name of the agent. 
@@ -212,28 +211,36 @@ if __name__ == "__main__":
 
     # Load list of known countries.
     if os.path.exists('data/nIDs_valid.csv'):
-        nIDs_valid = pd.read_csv('data/nIDs_valid.csv').set_index('nID')['is_valid'].to_dict()
+        nIDs_valid_df = pd.read_csv('data/nIDs_valid.csv')
     else:
-        nIDs_valid = {}
+        nIDs_valid_df = pd.DataFrame(columns=['nID', 'nationality', 'is_valid'])
+    nIDs_valid = nIDs_valid_df.set_index('nID').to_dict(orient='index')
 
-    # Collect all unique nationalityIDs from the new occupations list.
-    nIDs = set()
-    for occupation in occupations_extracted.values:
+    # Collect all unique nationalities from the new occupations list.
+    nIDs = {}
+    for idx, occupation in occupations_extracted.iterrows():
         occupation_name = occupation[0]
         occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
-        nIDs.update(occupation_df['nationalityID'].unique())
+
+        for _, row in occupation_df.iterrows():
+            nID = row['nationalityID']
+            nationality = row['nationality']
+            # Sets the nationality if not already in the dictionary.
+            nIDs.setdefault(nID, nationality)
 
     # For each unique nID check if it is instance (and subclass) of "country" or "state" in wikidata.
     print('Querying wikidata to verify new nationalities')
-    for nID in nIDs:
+    for nID, nationality in nIDs.items():
         if nID in nIDs_valid: continue  # Skip if its already a known country
         query = build_verification_query(nid=nID)
         response = requests.get(url, params={'query': query, 'format': 'json'}, headers=headers).json()
+        
         nID_is_valid = response['boolean']
-        nIDs_valid[nID] = nID_is_valid
+        nIDs_valid[nID] = {'nationality': nationality, 'is_valid': nID_is_valid}
 
     # Convert dictionary to DataFrame and save updated list of valid and invalid countries.
-    nIDs_valid_df = pd.DataFrame(list(nIDs_valid.items()), columns=['nID', 'is_valid'])
+    nIDs_valid_df = pd.DataFrame.from_dict(nIDs_valid, orient='index').reset_index()
+    nIDs_valid_df.rename(columns={'index': 'nID'}, inplace=True)
     nIDs_valid_df.to_csv('data/nIDs_valid.csv', index=False)
 
     # Remove entries with invalid countires from each occupations list.
