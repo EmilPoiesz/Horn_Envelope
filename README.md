@@ -8,9 +8,7 @@ Some of the experiments are based on a dataset that is created out of wikidata. 
 
 ``dataset_wikidata_extraction.py``, which extracts the desired data and saves it in a raw format.
 
-``dataset_cleanup.py``, which cleans up the raw extracted data by removing some unwanted datapoints and converting the gender.
-
-``dataset_creation/py`` converts the datapoints into sentence/label pairs, that can be used to query the large language models
+``dataset_sentence_creation.py`` converts the datapoints into sentence/label pairs, that can be used to query the large language models
 
 ``dataset_visualization.ipynb`` is a notebook, that visualizes some features of the dataset and gives a general analysis of the structure
 
