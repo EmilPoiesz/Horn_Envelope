@@ -152,6 +152,42 @@ def query_wikidata(occupation_list):
         df_occupations = pd.DataFrame(occupation_list_clean)
     df_occupations.to_csv('data/occupations_extracted.csv', index=None, header=None)
 
+def remove_invalid_nID_and_standardize_gender(occupations_extracted, nIDs_valid):
+    amounts = {}
+    for occupation in occupations_extracted.values:
+        idx_to_delete = []
+        occupation_name = occupation[0]
+        occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
+        total_pre_cleanup = len(occupation_df)
+
+        for idx, row in occupation_df.iterrows():
+            # Check if row should be deleted
+            nID = row['nationalityID']            
+            if not nIDs_valid[nID]: 
+                idx_to_delete.append(idx)
+                continue
+
+            # Standardize gender if row is kept
+            occupation_df.at[idx,'gender'] = standardize_gender(row['gender'])
+            
+        # Drop duplicate rows and rows with invalid countries  
+        occupation_df = occupation_df.drop(idx_to_delete)
+        occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
+        occupation_df = occupation_df.drop_duplicates(keep='first')
+        total_post_cleanup = len(occupation_df)
+
+        # Save clean data to file
+        occupation_df.to_csv(f'data/csv_clean/{occupation_name}.csv', index=False)
+        amounts[occupation_name] = (total_pre_cleanup, total_post_cleanup)
+        print(f'Cleaned up {occupation_name}')
+    print(amounts)
+
+def standardize_gender(gender):
+    is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
+    is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
+    return 'female' if is_female else 'male' if is_male else 'other'
+
+
 if __name__ == "__main__":
 
     # When running automated queries we need to add 'bot' to the name of the agent. 
@@ -202,37 +238,7 @@ if __name__ == "__main__":
 
     # Remove entries with invalid countires from each occupations list.
     # Refactor gender if entry is kept.
-    amounts = {}
-    for occupation in occupations_extracted.values:
-        idx_to_delete = []
-        occupation_name = occupation[0]
-        occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
-        total_pre_cleanup = len(occupation_df)
-
-        for idx, row in occupation_df.iterrows():
-            # Check if row should be deleted
-            nID = row['nationalityID']            
-            if not nIDs_valid[nID]: 
-                idx_to_delete.append(idx)
-                continue
-
-            # Standardize gender if row is kept
-            gender = row['gender']
-            is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
-            is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
-            occupation_df.at[idx,'gender'] = 'female' if is_female else 'male' if is_male else 'other'
-            
-        # Drop rows with invalid countries  
-        occupation_df = occupation_df.drop(idx_to_delete)
-        occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
-        occupation_df = occupation_df.drop_duplicates(keep='first')
-        total_post_cleanup = len(occupation_df)
-
-        # Save clean data to file
-        occupation_df.to_csv(f'data/csv_clean/{occupation_name}.csv', index=False)
-        amounts[occupation_name] = (total_pre_cleanup, total_post_cleanup)
-        print(f'Cleaned up {occupation_name}')
-    print(amounts)
+    remove_invalid_nID_and_standardize_gender(occupations_extracted, nIDs_valid)
 
 
     
