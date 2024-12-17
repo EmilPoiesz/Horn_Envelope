@@ -4,6 +4,8 @@ import os
 import pandas as pd
 from helper_functions import *
 
+
+
 def build_occupation_query(occupation, limit, offset):
     # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
     # Read more on the use and need or User-Agent: https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
@@ -78,11 +80,11 @@ def build_verification_query(nid):
         """
     return query.format(nid='wd:' + nid)
 
-def fetch_data(occupation_id, occupation_name, limit=10_000):
+def fetch_data(occupation_id, occupation_name, limit, offset):
     # For very large queries it is good practice to break it up 
     # into smaller queries to prevent overloading the service.
 
-    offset = 0
+    offset = offset
     all_results = []
     
     while True:
@@ -108,7 +110,7 @@ def fetch_data(occupation_id, occupation_name, limit=10_000):
 
     return all_results
 
-def query_wikidata(occupation_list):
+def query_wikidata(occupation_list, limit=5_000, offset=0):
 
     occupation_list_clean = []
     # Query wikidata for all occupations
@@ -118,7 +120,7 @@ def query_wikidata(occupation_list):
         
         # Make the query
         print(f'We are querying for {occupation_name}.')
-        results = fetch_data(occupation_id, occupation_name)
+        results = fetch_data(occupation_id, occupation_name, limit, offset)
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
         # Process the results
