@@ -2,11 +2,13 @@ import requests
 import json
 import os
 import pandas as pd
+import time
+
 from helper_functions import *
 
 
 
-def build_occupation_query(occupation, limit, offset):
+def build_occupation_query(occupation):
     # Read more on how to make a SPARQL query: https://ramiro.org/notebook/us-presidents-causes-of-death/
     # Read more on the use and need or User-Agent: https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
     #
@@ -44,10 +46,8 @@ def build_occupation_query(occupation, limit, offset):
             ?personID rdfs:label ?individual filter (lang(?individual) = "en") .
         }}
     }}
-    LIMIT {limit} 
-    OFFSET {offset}
     """
-    return query.format(occupationID = occupation, limit=limit, offset=offset)
+    return query.format(occupationID=occupation)
 
 def build_verification_query(nid):
     
@@ -80,37 +80,27 @@ def build_verification_query(nid):
         """
     return query.format(nid='wd:' + nid)
 
-def fetch_data(occupation_id, occupation_name, limit, offset):
-    # For very large queries it is good practice to break it up 
-    # into smaller queries to prevent overloading the service.
+def fetch_data(occupation_id):
 
-    offset = offset
-    all_results = []
+    query = build_occupation_query(occupation_id)
     
-    while True:
-        # Build the query with the current offset
-        query = build_occupation_query(occupation_id, limit=limit, offset=offset)
+    try:
         response = requests.get(url, params={'query': query, 'format': 'json'}, headers=headers)
-        
-        try:
-            data = response.json()
-            bindings = data['results']['bindings']
-            
-            # Stop the loop if no more results are returned
-            if not bindings: break
-            
-            all_results.extend(bindings)
-            offset += limit  # Increase the offset for the next batch
-            
-        except requests.exceptions.JSONDecodeError:
-            print(f"Failed to decode JSON for {occupation_name}. Response status code:")
-            print(response.status_code)
-            print(response.text) 
-            break
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"\nNetwork error occurred: {e}\n")
+        return {}
+    
+    try:
+        data = response.json()
+        results = data.get('results', {}).get('bindings', [])
+    except json.JSONDecodeError as e:
+        print(f"\nJSON decoding error: {e}\n")
+        return {}
 
-    return all_results
+    return results
 
-def query_wikidata(occupation_list, limit=5_000, offset=0):
+def query_wikidata(occupation_list):
 
     occupation_list_clean = []
     # Query wikidata for all occupations
@@ -120,7 +110,7 @@ def query_wikidata(occupation_list, limit=5_000, offset=0):
         
         # Make the query
         print(f'We are querying for {occupation_name}.')
-        results = fetch_data(occupation_id, occupation_name, limit, offset)
+        results = fetch_data(occupation_id)
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
         # Process the results
@@ -191,15 +181,12 @@ def standardize_gender(gender):
 
 if __name__ == "__main__":
 
-    # When running automated queries we need to add 'bot' to the name of the agent. 
-    # Also provide a way to be contacted (like an email).
+    # When running automated queries we need to add 'bot' to the name of the agent and a contact. 
     url = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
     headers  = {'User-Agent' : 'HornEnvelopeLearnerOccupationRetrivalQueryBot (emilpo@uio.no)'} 
 
     # Get list of new occupations
     if os.path.exists('data/occupations_extracted.csv'):
-        # Merges the list of occupations with those we have already extracted
-        # making sure we only query for new occupations to limit the amount of queries.
         occupations = pd.read_csv("occupations.csv", header=None)
         occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
         occupations_new = occupations[~occupations[0].isin(occupations_extracted[0])]
