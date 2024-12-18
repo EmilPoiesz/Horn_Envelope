@@ -64,7 +64,7 @@ def load_known_countries():
     if os.path.exists('data/known_countries.csv'):
         known_countries_df = pd.read_csv('data/known_countries.csv')
     else:
-        known_countries_df = pd.DataFrame(columns=['nID', 'nationality', 'is_valid'])
+        known_countries_df = pd.DataFrame(columns=['nID', 'nationality', 'continent', 'is_valid'])
     known_countries = known_countries_df.set_index('nID').to_dict(orient='index')
     return known_countries
 
@@ -175,11 +175,25 @@ if __name__ == "__main__":
     print('Querying wikidata to verify new nationalities')
     for nID, nationality in unique_nIDs.items():
         if nID in known_countries: continue  # Skip if its already a known country
+        
+        # Validity of country
         query = SPARQL_QUERIES['verify_nationality_query'].format(nid=nID)
         response = send_query(query)
-
         nID_is_valid = response['boolean']
-        known_countries[nID] = {'nationality': nationality, 'is_valid': nID_is_valid}
+
+        # Continent of country
+        query = SPARQL_QUERIES['get_continent_query'].format(nid=nID)
+        response = send_query(query)
+        continent_result = response.get('results', {}).get('bindings', [])
+        continent = '?'
+        if continent_result:
+            continent = continent_result[0].get('continent', {}).get('value',[])
+
+        known_countries[nID] = {
+            'nationality': nationality, 
+            'continent': continent,
+            'is_valid': nID_is_valid
+            }
 
     # Convert dictionary to DataFrame and save updated list of valid and invalid countries.
     df = pd.DataFrame.from_dict(known_countries, orient='index').reset_index()

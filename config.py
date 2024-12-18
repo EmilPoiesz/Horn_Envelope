@@ -35,6 +35,20 @@ SPARQL_QUERIES = {
                 UNION
                 {{wd:{nid} wdt:P31*/wdt:P17?/wdt:P31/wdt:P279* wd:Q3024240}}
             }}
+            """,
+
+    'get_continent_query': """
+            PREFIX wikibase: <http://wikiba.se/ontology#>
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+            SELECT DISTINCT ?continent ?cid WHERE {{
+                wd:{nid} wdt:P30 ?cid .
+
+                OPTIONAL{{
+                    ?cid rdfs:label ?continent filter (lang(?continent) = "en") .
+                }}
+            }}
             """
 }
 
