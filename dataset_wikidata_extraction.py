@@ -19,7 +19,14 @@ def send_query(query):
     except requests.exceptions.RequestException as e:
         print(f"\nNetwork error occurred: {e}\n")
         return {}
-    return response.json()
+    
+    try: 
+        result = response.json()
+    except requests.JSONDecodeError as e:
+        print(f"\nCould not parse JSON error: {e}\n")
+        return {}
+    
+    return result
 
 def extract_unique_nationalities(occupations_extracted):
     """
@@ -114,6 +121,13 @@ def standardize_gender(gender):
     is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
     return 'female' if is_female else 'male' if is_male else 'other'
 
+def datafield_in_entry(entry, datafield):
+    """
+    Checks if the datafield is in the entry then returns that value.
+
+    If datafield not in the entry then return '?'
+    """
+    return entry[datafield]['value'] if datafield in entry else '?'
 
 if __name__ == "__main__":
 
@@ -138,14 +152,22 @@ if __name__ == "__main__":
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
         occupation_data = []
-        for item in results:
+        for entry in results:
+            
+            birth = '?'
+            if entry['birth']['type'] == 'literal':
+                date_of_birth = entry['birth']['value'].split('-')
+                birth = date_of_birth[0]
+                if len(birth) == 0:
+                    birth = '-' + date_of_birth[1]
+
             occupation_data.append({
-                'name': return_if_exists(item, 'individual'),
-                'gender': return_if_exists(item, 'gender'),
-                'birth': get_birth(item),
-                'nationality': return_if_exists(item, 'nationality'),
-                'nationalityID': get_nid(return_if_exists(item, 'nationalityID'))
-            }) # These functions from helper_functions are not very clear but I don't want to spend more time refactoring
+                'name': datafield_in_entry(entry, 'individual'),
+                'gender': datafield_in_entry(entry, 'gender'),
+                'birth': birth,
+                'nationality': datafield_in_entry(entry,'nationality'),
+                'nationalityID': datafield_in_entry(entry,'nationalityID').split('/')[-1]
+            }) 
 
         # Save the dataframe as CSV
         pd.DataFrame(occupation_data).to_csv(f'data/csv/{occupation_name}.csv', index=False)
@@ -171,7 +193,7 @@ if __name__ == "__main__":
     unique_nIDs = extract_unique_nationalities(occupations_extracted)
     known_countries = load_known_countries()
     
-    # Save the validity of each unique nID
+    # Save the validity and continent of each unique nID
     print('Querying wikidata to verify new nationalities')
     for nID, nationality in unique_nIDs.items():
         if nID in known_countries: continue  # Skip if its already a known country
@@ -182,18 +204,26 @@ if __name__ == "__main__":
         nID_is_valid = response['boolean']
 
         # Continent of country
+        continent = '?'
         query = SPARQL_QUERIES['get_continent_query'].format(nid=nID)
         response = send_query(query)
         continent_result = response.get('results', {}).get('bindings', [])
-        continent = '?'
+        
         if continent_result:
             continent = continent_result[0].get('continent', {}).get('value',[])
+        else:
+            query = SPARQL_QUERIES['get_continent_extensive_query'].format(nid=nID)
+            response = send_query(query)
+            continent_result = response.get('results', {}).get('bindings', [])
+            if continent_result:
+                continent = continent_result[0].get('continent', {}).get('value',[])
+        
 
         known_countries[nID] = {
             'nationality': nationality, 
             'continent': continent,
             'is_valid': nID_is_valid
-            }
+        }
 
     # Convert dictionary to DataFrame and save updated list of valid and invalid countries.
     df = pd.DataFrame.from_dict(known_countries, orient='index').reset_index()

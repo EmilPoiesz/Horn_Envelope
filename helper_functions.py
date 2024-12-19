@@ -44,7 +44,7 @@ def replace_gender(gender):
     else:
         return 'diverse' 
 
-def return_if_exists(dataitem, field):
+def datafield_in_entry(dataitem, field):
     if field in dataitem:
         return dataitem[field]['value']
     else:
