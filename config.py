@@ -49,6 +49,20 @@ SPARQL_QUERIES = {
                     ?cid rdfs:label ?continent filter (lang(?continent) = "en") .
                 }}
             }}
+            """,
+
+    'get_continent_extensive_query': """
+            PREFIX wikibase: <http://wikiba.se/ontology#>
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+            SELECT DISTINCT ?continent ?cid WHERE {{
+                wd:{nid} wdt:P17/wdt:P30 | wdt:P1366/wdt:P30 | wdt:P30 ?cid .
+
+                OPTIONAL{{
+                    ?cid rdfs:label ?continent filter (lang(?continent) = "en") .
+                }}
+            }}
             """
 }
 
