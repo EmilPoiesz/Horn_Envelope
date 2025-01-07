@@ -91,7 +91,7 @@ def remove_invalid_nID_and_standardize_gender(occupations_extracted, nIDs_valid)
         for idx, row in occupation_df.iterrows():
             # Check if row should be deleted
             nID = row['nationalityID']            
-            if not nIDs_valid[nID]: 
+            if not nID in nIDs_valid: 
                 idx_to_delete.append(idx)
                 continue
 
@@ -209,15 +209,15 @@ if __name__ == "__main__":
         response = send_query(query)
         continent_result = response.get('results', {}).get('bindings', [])
         
-        if continent_result:
-            continent = continent_result[0].get('continent', {}).get('value',[])
-        else:
+        if not continent_result:
             query = SPARQL_QUERIES['get_continent_extensive_query'].format(nid=nID)
             response = send_query(query)
             continent_result = response.get('results', {}).get('bindings', [])
-            if continent_result:
-                continent = continent_result[0].get('continent', {}).get('value',[])
         
+        if continent_result:
+            continent = continent_result[0].get('continent', {}).get('value',[])
+        
+        if continent == '?': continue # If nation is not in a continent, skip 
 
         known_countries[nID] = {
             'nationality': nationality, 
