@@ -1,8 +1,8 @@
 import numpy as np
 import random
 import timeit
-from Horn import *
-from binarize_features import *
+from models.Horn import *
+from models.binarize_features import *
 from transformers import pipeline
 from helper_functions import *
 from scipy.special import comb

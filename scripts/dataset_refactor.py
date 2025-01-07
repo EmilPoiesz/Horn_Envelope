@@ -1,6 +1,6 @@
 import pandas as pd
 from helper_functions import *
-from binarize_features import *
+from models.binarize_features import *
 
 def get_container(birthyear, age_containers):
     if birthyear == '?':
