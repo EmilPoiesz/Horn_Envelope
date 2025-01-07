@@ -1,7 +1,6 @@
 import requests 
 import json
 import os
-import sys
 import pandas as pd
 
 from config import SPARQL_QUERIES, URL, HEADERS
@@ -9,7 +8,7 @@ from helper_functions import *
 
 def send_query(query):
     """
-    Queries wikidata with error handeling. 
+    Queries wikidata with error handling. 
 
     This ensures that we continue to query Wikidata if one query throws an error.
     """
@@ -22,13 +21,13 @@ def send_query(query):
     
     try: 
         result = response.json()
-    except requests.JSONDecodeError as e:
+    except json.JSONDecodeError as e:
         print(f"\nCould not parse JSON error: {e}\n")
         return {}
     
     return result
 
-def extract_unique_nationalities(occupations_extracted):
+def extract_unique_nationalities(occupations:pd.DataFrame):
     """
     Loads all occupation files and creates a combined dict of all unique nationalities
 
@@ -36,30 +35,17 @@ def extract_unique_nationalities(occupations_extracted):
         dict: nID as index, nationality as value
     """
     nIDs = {}
-    for idx, occupation in occupations_extracted.iterrows():
-        occupation_name = occupation[0]
+    for idx, occupation in occupations.iterrows():
+        occupation_name = occupation.occupation
         occupation_df = pd.read_csv(f'data/csv/{occupation_name}.csv')
 
         for _, row in occupation_df.iterrows():
             nID = row['nationalityID']
             nationality = row['nationality']
             
-            # Sets the nationality if not already in the dictionary.
+            # Add nationality to dictionary if not already present.
             nIDs.setdefault(nID, nationality)
     return nIDs
-
-def extract_new_occupations():
-    """
-    Calculates the list of occupations that have not been extracted yet.
-
-    Returns:
-        List: New occupations we need to query
-    """
-    if os.path.exists('data/occupations_extracted.csv'):
-        occupations = pd.read_csv("occupations.csv", header=None)
-        occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
-        return occupations[~occupations[0].isin(occupations_extracted[0])].to_numpy()
-    return pd.read_csv("occupations.csv", header=None).to_numpy()
 
 def load_known_countries():
     """
@@ -121,25 +107,23 @@ def standardize_gender(gender):
     is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
     return 'female' if is_female else 'male' if is_male else 'other'
 
-def datafield_in_entry(entry, datafield):
+def safe_get(result, attribute):
     """
-    Checks if the datafield is in the entry then returns that value.
-
-    If datafield not in the entry then return '?'
+    Checks if the attribute exists in the result then returns that value.
+    If the attribute is not in the entry then return '?'.
     """
-    return entry[datafield]['value'] if datafield in entry else '?'
+    return result[attribute]['value'] if attribute in result else '?'
 
 if __name__ == "__main__":
 
-    new_occupations = extract_new_occupations()
-    if len(new_occupations) <= 0: 
-        sys.exit("No new occupations")
+    occupations_df = pd.read_csv("data/occupations.csv", header=0)
+    new_occupations = occupations_df[occupations_df['extracted'] == False] 
 
     # Query wikidata for all new occupations
     new_occupations_extracted = []
-    for occupation in new_occupations:
-        occupation_id   = occupation[1]
-        occupation_name = occupation[0]
+    for _, occupation in new_occupations.iterrows():
+        occupation_id   = occupation.occupation_id
+        occupation_name = occupation.occupation
         
         print(f'We are querying Wikidata for {occupation_name}.')
         query = SPARQL_QUERIES['occupation_query'].format(occupationID=occupation_id)
@@ -152,21 +136,21 @@ if __name__ == "__main__":
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
         
         occupation_data = []
-        for entry in results:
+        for result in results:
             
             birth = '?'
-            if entry['birth']['type'] == 'literal':
-                date_of_birth = entry['birth']['value'].split('-')
+            if result['birth']['type'] == 'literal':
+                date_of_birth = result['birth']['value'].split('-')
                 birth = date_of_birth[0]
                 if len(birth) == 0:
                     birth = '-' + date_of_birth[1]
 
             occupation_data.append({
-                'name': datafield_in_entry(entry, 'individual'),
-                'gender': datafield_in_entry(entry, 'gender'),
-                'birth': birth,
-                'nationality': datafield_in_entry(entry,'nationality'),
-                'nationalityID': datafield_in_entry(entry,'nationalityID').split('/')[-1]
+                'name': safe_get(result,'individual'),
+                'gender': safe_get(result,'gender'),
+                'nationality': safe_get(result,'nationality'),
+                'nationalityID': safe_get(result,'nationalityID').split('/')[-1], #extract id from url
+                'birth': birth
             }) 
 
         # Save the dataframe as CSV
@@ -179,18 +163,13 @@ if __name__ == "__main__":
         # Keep track of extracted occupations
         new_occupations_extracted.append(occupation)
 
-    # Update extracted occupations list
-    if os.path.exists('data/occupations_extracted.csv'):
-        df_occupations = pd.read_csv('data/occupations_extracted.csv', header=None)
-        df_occupations = pd.concat([df_occupations, pd.DataFrame(new_occupations_extracted)])\
-            .to_csv('data/occupations_extracted.csv', index=None, header=None)
-    else:
-        df_occupations = pd.DataFrame(new_occupations_extracted)\
-            .to_csv('data/occupations_extracted.csv', index=None, header=None)
-    
+    # Update the 'extracted' column in occupations.csv
+    for occupation in new_occupations_extracted:
+        occupation_name = occupation[0]
+        occupations_df.loc[occupations_df['occupation'] == occupation_name, 'extracted'] = True
+    occupations_df.to_csv("data/occupations.csv", index=False)
 
-    occupations_extracted = pd.read_csv("data/occupations_extracted.csv", header=None)
-    unique_nIDs = extract_unique_nationalities(occupations_extracted)
+    unique_nIDs = extract_unique_nationalities(occupations_df)
     known_countries = load_known_countries()
     
     # Save the validity and continent of each unique nID
@@ -201,7 +180,7 @@ if __name__ == "__main__":
         # Validity of country
         query = SPARQL_QUERIES['verify_nationality_query'].format(nid=nID)
         response = send_query(query)
-        nID_is_valid = response['boolean']
+        nID_is_valid = response.get('boolean', False)
 
         # Continent of country
         continent = '?'
@@ -215,7 +194,7 @@ if __name__ == "__main__":
             continent_result = response.get('results', {}).get('bindings', [])
         
         if continent_result:
-            continent = continent_result[0].get('continent', {}).get('value',[])
+            continent = continent_result[0].get('continent', {}).get('value', '?')
         
         if continent == '?': continue # If nation is not in a continent, skip 
 

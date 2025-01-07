@@ -44,7 +44,7 @@ def replace_gender(gender):
     else:
         return 'diverse' 
 
-def datafield_in_entry(dataitem, field):
+def safe_get(dataitem, field):
     if field in dataitem:
         return dataitem[field]['value']
     else:

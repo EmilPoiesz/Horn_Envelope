@@ -27,7 +27,7 @@ class Binarizer:
         self.lengths = {'birth' : amount_containers, 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
 
     def initialize_countries(self, country_file : str):
-        country_list = pd.read_csv(country_file, names=['cid', ' country', 'continent']).set_index('cid').fillna('?')
+        country_list = pd.read_csv(country_file, names=['nID', ' nationality', 'continent']).set_index('nID').fillna('?')
         continents = country_list.continent.unique()
         continents = np.delete(continents, np.where(continents == '?'))
         continent_lookup = {continents[i] : i for i in range(len(continents))}
