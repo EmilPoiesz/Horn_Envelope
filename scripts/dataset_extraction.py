@@ -186,7 +186,6 @@ if __name__ == "__main__":
         results = response.get('results', {}).get('bindings', [])
         
         if len(results) == 0: print("We encountered an error and found no results."); continue
-        
         new_occupations_extracted.append(occupation)
 
         print("Queried for " + occupation_name + " and found " + str(len(results)) + " results in wikidata.")
@@ -223,6 +222,7 @@ if __name__ == "__main__":
         response = send_query(query)
         continent_result = response.get('results', {}).get('bindings', [])
         
+        # If continent is not found, query the countries that the nation is part of
         if not continent_result:
             query = SPARQL_QUERIES['get_continent_extensive_query'].format(nid=nID)
             response = send_query(query)
@@ -231,7 +231,7 @@ if __name__ == "__main__":
         if continent_result:
             continent = continent_result[0].get('continent', {}).get('value', '?')
         
-        if continent == '?': continue # If nation is not in a continent, skip 
+        if continent == '?': continue # If nation doesn't have a continent then skip 
 
         known_countries[nID] = {
             'nationality': nationality, 

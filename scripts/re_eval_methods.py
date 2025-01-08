@@ -1,6 +1,6 @@
 import pickle
 from sympy import *
-from models.binarize_features import *
+from models.Binarizer import *
 import json
 import pandas as pd
 

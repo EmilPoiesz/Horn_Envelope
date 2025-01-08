@@ -6,7 +6,7 @@ Networks: The BERT Case".
 ## Dataset
 Some of the experiments are based on a dataset that is created out of wikidata. The corresponding files are
 
-``dataset_wikidata_extraction.py``, which extracts the desired data and saves it in a raw format.
+``dataset_extraction.py`` extracts the desired data from wikidata and saves it.
 
 ``dataset_sentence_creation.py`` converts the datapoints into sentence/label pairs, that can be used to query the large language models
 
