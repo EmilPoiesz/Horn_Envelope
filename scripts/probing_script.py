@@ -4,7 +4,7 @@ import numpy as np
 from helper_functions import *
 
 models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-occ_list = import_occupations('data/occupations_updated.csv')
+occ_list = import_occupations('../data/occupations.csv')
 
 for model in models:
     print('===== ' + model + ' =====')

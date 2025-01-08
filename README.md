@@ -10,9 +10,7 @@ Some of the experiments are based on a dataset that is created out of wikidata. 
 
 ``dataset_sentence_creation.py`` converts the datapoints into sentence/label pairs, that can be used to query the large language models
 
-``dataset_visualization.ipynb`` is a notebook, that visualizes some features of the dataset and gives a general analysis of the structure
-
-``dataset_refactor.py`` refactors the data according to the system that is used in the rule extraction as well (age containers etc.)
+``dataset_visualization.ipynb`` is a notebook that visualizes some features of the dataset and gives a general analysis of the structure
 
 ## Probing
 The probing of the language models is done using the huggingface.co API. The corresponding files are
