@@ -1,17 +1,16 @@
 from transformers import pipeline
 import pandas as pd
-import numpy as np
-from helper_functions import *
 
-models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-occ_list = import_occupations('../data/occupations.csv')
+if __name__ == '__main__':
+    
+    models = ['roberta-base'] # temporarily only test one model 
+    #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
 
-for model in models:
-    print('===== ' + model + ' =====')
-    unmasker = pipeline('fill-mask', model=model)
-    for occupation in occ_list:
-        name = occupation[0]
-        data = pd.read_csv('data/dataset_refac/' + name + '.csv', header=None, names=['sentence', 'label'])
+    for model in models:
+        print('===== ' + model + ' =====')
+        unmasker = pipeline('fill-mask', model=model)
+
+        data = pd.read_csv('data/dataset.csv', header=None, names=['sentence', 'label']).sample(n=100, random_state=42) # temporary fix only test random 100 rows
         data['he'] = 0.0
         data['she'] = 0.0
         data['they'] = 0.0
@@ -20,8 +19,15 @@ for model in models:
         data_format['score1'] = 0.0
         data_format['prediction2'] = ''
         data_format['score2'] = 0.0
+        
         for index, row in data.iterrows():
-            result = lm_inference(unmasker, row['sentence'], model)
+            
+            sentence = row['sentence']
+            if model.split('-')[0] == 'bert' :
+                sentence = sentence.replace('<mask>', '[MASK]')
+            
+            result = unmasker(sentence)
+            
             for r in result:
                 if r['token_str'] == 'She':
                     data.at[index, 'she'] = r['score']
@@ -32,11 +38,11 @@ for model in models:
                 elif r['token_str'] == 'They':
                     data.at[index, 'they'] = r['score']
                     data_format.at[index, 'they'] = r['score']
+            
             data_format.at[index, 'prediction1'] = result[0]['token_str']
             data_format.at[index, 'prediction2'] = result[1]['token_str']
             data_format.at[index, 'score1'] = result[0]['score']
             data_format.at[index, 'score2'] = result[1]['score']
-        data.to_csv('data/probing_' + model + '/' + name + '.csv')
-        data_format.to_csv('data/probing_' + model + '/' + name + '_format.csv')
-        print('Finished with {occupation}'.format(occupation=name))
-        
+            data.to_csv('data/probing/probing_' + model + '.csv')
+            data_format.to_csv('data/probing/probing_' + model + '_format.csv')
+            

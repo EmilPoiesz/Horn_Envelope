@@ -5,35 +5,35 @@
 ######################################################################################
 
 import pandas as pd
-import os
-import sys
-
-def load_occupations():
-    # If dataset_wikidata_extraction.py has not been run before this file then we need to throw an error.
-    if os.path.exists("data/occupations_extracted.csv"):
-        return pd.read_csv("data/occupations_extracted.csv", header=None)
     
-    print('No occupations have been extracted yet, you first need to run the file dataset_wikidata_extraction.py.')
-    sys.exit(0)
+def get_birthyear_container(age_containers, birthyear):
 
-def get_pronoun(gender):
-    is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
-    is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
-    return 'female' if is_female else 'male' if is_male else 'other'
+    if birthyear == '?': return 'in an unknown timeperiod'
+    birthyear = int(birthyear)
+    if birthyear < age_containers[0]: return f'before {age_containers[0]}'
     
-if __name__ == "__main__":
-
-    query_sentence = "<mask> was born in {birthyear} in {nationality} and is a {occupation}."
-    occupations   = load_occupations()
-
-    for idx, occupation in occupations.iterrows():
-        name = occupation[0]
+    for i in range(len(age_containers) - 1):
+        if age_containers[i] <= birthyear <= age_containers[i + 1]:
+            return f'between {age_containers[i]} and {age_containers[i + 1]}'
         
-        df = pd.read_csv(f'data/csv_clean/{name}.csv')
+    return f'after {age_containers[-1]}'
+    
+
+if __name__ == "__main__":
+    age_containers = [1875, 1925, 1951, 1970]
+    query_sentence = "<mask> was born in {birthyear} in {nationality} and is a {occupation}."
+    occupations_df = pd.read_csv("data/occupations.csv", header=0)
+    extracted_occupations = occupations_df[occupations_df['extracted'] == True]['occupation'].values
+
+    for occupation in extracted_occupations:
+        df = pd.read_csv(f'data/csv_clean/{occupation}.csv')
+        
         sentences = []
-        for index,row in df.iterrows():
-            sentence = query_sentence.format(birthyear=row['birth'], nationality=row['nationality'], occupation=name.replace('_', ' '))
-            pronoun = get_pronoun(row['gender'])
+        for row in df.itertuples():
+
+            birthyear = get_birthyear_container(age_containers, row.birth)
+            sentence = query_sentence.format(birthyear=birthyear, nationality=row.nationality, occupation=occupation.replace('_', ' '))
+            pronoun = row.gender
             
             # Store sentence with correct pronoun as a traning example
             sentences.append([sentence, pronoun] )
