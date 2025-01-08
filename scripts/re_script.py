@@ -4,7 +4,7 @@ import timeit
 from models.Horn import *
 from models.Binarizer import *
 from transformers import pipeline
-from helper_functions import *
+from Old.helper_functions import *
 from scipy.special import comb
 import pickle
 import json

@@ -22,7 +22,7 @@ if __name__ == '__main__':
         
         for index, row in data.iterrows():
             
-            sentence = row['sentence']
+            sentence = row.sentence
             if model.split('-')[0] == 'bert' :
                 sentence = sentence.replace('<mask>', '[MASK]')
             
@@ -43,6 +43,6 @@ if __name__ == '__main__':
             data_format.at[index, 'prediction2'] = result[1]['token_str']
             data_format.at[index, 'score1'] = result[0]['score']
             data_format.at[index, 'score2'] = result[1]['score']
-            data.to_csv('data/probing/probing_' + model + '.csv')
-            data_format.to_csv('data/probing/probing_' + model + '_format.csv')
+            data.to_csv('data/probing/probing_' + model + '.csv', index=False)
+            data_format.to_csv('data/probing/probing_' + model + '_format.csv', index=False)
             
