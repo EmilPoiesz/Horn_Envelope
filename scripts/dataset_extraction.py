@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from config import SPARQL_QUERIES, URL, HEADERS
-from helper_functions import *
+
 
 def send_query(query):
     """
