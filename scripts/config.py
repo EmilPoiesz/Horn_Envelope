@@ -2,7 +2,7 @@ URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql'
 HEADERS = {'User-Agent' : 'HornEnvelopeLearnerOccupationRetrivalQueryBot (emilpo@uio.no)'} 
 
 SPARQL_QUERIES = {
-    'occupation_query':  """
+    'occupation_query2':  """
             PREFIX wikibase: <http://wikiba.se/ontology#>
             PREFIX wd: <http://www.wikidata.org/entity/>
             PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -21,6 +21,24 @@ SPARQL_QUERIES = {
                     ?personID rdfs:label ?individual filter (lang(?individual) = "en") .
                 }}
             }}
+            """,
+    'occupation_query':  """
+            PREFIX wikibase: <http://wikiba.se/ontology#>
+            PREFIX wd: <http://www.wikidata.org/entity/>
+            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+            SELECT ?individual ?gender ?birth ?nationality ?nationalityID WHERE {{
+                ?personID wdt:P106 wd:{occupationID} ;
+                        wdt:P27 ?nationalityID ;
+                        wdt:P21 ?genderID ;
+                        wdt:P569 ?birth .
+                
+                ?nationalityID rdfs:label ?nationality filter (lang(?nationality) = "en") .
+                ?genderID rdfs:label ?gender filter (lang(?gender) = "en") .
+                ?personID rdfs:label ?individual filter (lang(?individual) = "en") 
+            }}
+            LIMIT 100000
             """,
 
     'verify_nationality_query': """

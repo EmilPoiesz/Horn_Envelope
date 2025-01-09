@@ -39,4 +39,5 @@ if __name__ == "__main__":
             sentences.append([sentence, pronoun] )
 
         sentence_df = pd.DataFrame(sentences)
-        sentence_df.to_csv('data/dataset.csv', mode='a',index=False, header=False)
+        sentence_df.to_csv(f'data/probing_sentences/{occupation}_dataset.csv', mode='a',index=False, header=False)
+        sentence_df.to_csv('data/probing_sentences/combined_dataset.csv', mode='a',index=False, header=False)

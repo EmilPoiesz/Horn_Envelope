@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     # Update the 'extracted' column in occupations.csv
     for occupation in new_occupations_extracted:
-        occupation_name = occupation[0]
+        occupation_name = occupation.occupation
         occupations_df.loc[occupations_df['occupation'] == occupation_name, 'extracted'] = True
     occupations_df.to_csv("data/occupations.csv", index=False)
     extracted_occupations = occupations_df[occupations_df['extracted'] == True]['occupation'].values

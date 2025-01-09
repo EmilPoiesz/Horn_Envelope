@@ -1,16 +1,19 @@
 from transformers import pipeline
 import pandas as pd
+import os
 
 if __name__ == '__main__':
     
+    occupation = 'athletic_director' # temporary fix only test one occupation
     models = ['roberta-base'] # temporarily only test one model 
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
 
     for model in models:
+        os.makedirs(f'data/probing/probing_{model}', exist_ok=True)
         print('===== ' + model + ' =====')
         unmasker = pipeline('fill-mask', model=model)
 
-        data = pd.read_csv('data/dataset.csv', header=None, names=['sentence', 'label']).sample(n=100, random_state=42) # temporary fix only test random 100 rows
+        data = pd.read_csv(f'data/probing_sentences/{occupation}_dataset.csv', header=None, names=['sentence', 'label']).head(n=100) # temporary fix only test random 100 rows
         data['he'] = 0.0
         data['she'] = 0.0
         data['they'] = 0.0
@@ -43,6 +46,6 @@ if __name__ == '__main__':
             data_format.at[index, 'prediction2'] = result[1]['token_str']
             data_format.at[index, 'score1'] = result[0]['score']
             data_format.at[index, 'score2'] = result[1]['score']
-            data.to_csv('data/probing/probing_' + model + '.csv', index=False)
-            data_format.to_csv('data/probing/probing_' + model + '_format.csv', index=False)
+            data.to_csv(f'data/probing/probing_{model}/{occupation}.csv', index=False)
+            data_format.to_csv(f'data/probing/probing_{model}/{occupation}_format.csv', index=False)
             
