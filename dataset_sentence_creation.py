@@ -5,6 +5,7 @@
 ######################################################################################
 
 import pandas as pd
+from config import AGE_CONTAINERS
     
 def get_birthyear_container(age_containers, birthyear):
 
@@ -20,7 +21,6 @@ def get_birthyear_container(age_containers, birthyear):
     
 
 if __name__ == "__main__":
-    age_containers = [1875, 1925, 1951, 1970]
     query_sentence = "<mask> was born in {birthyear} in {nationality} and is a {occupation}."
     occupations_df = pd.read_csv("data/occupations.csv", header=0)
     extracted_occupations = occupations_df[occupations_df['extracted'] == True]['occupation'].values
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         sentences = []
         for row in df.itertuples():
 
-            birthyear = get_birthyear_container(age_containers, row.birth)
+            birthyear = get_birthyear_container(AGE_CONTAINERS, row.birth)
             sentence = query_sentence.format(birthyear=birthyear, nationality=row.nationality, occupation=occupation.replace('_', ' '))
             pronoun = row.gender
             

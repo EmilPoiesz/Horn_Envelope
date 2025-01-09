@@ -1,17 +1,17 @@
 import numpy as np
 import random
 import timeit
-from models.Horn import *
-from models.Binarizer import *
+from Horn import *
+from Binarizer import *
 from transformers import pipeline
-from Old.helper_functions import *
+from helper_functions import *
 from scipy.special import comb
 import pickle
 import json
 
-country_file = 'data/country_list_continents.csv'
-occ_file = 'data/occupations_subset.csv'
-binarizer = Binarizer(country_file, 5, occ_file)
+country_file = 'data/known_countries.csv'
+occ_file = 'data/occupations.csv'
+binarizer = Binarizer(country_file, occ_file)
 attributes = ['birth', 'continent', 'occupation']
 
 # add 2 dimensions for the gender variables (last variables in the vector)

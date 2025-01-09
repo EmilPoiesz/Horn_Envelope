@@ -84,3 +84,5 @@ SPARQL_QUERIES = {
             """
 }
 
+AGE_CONTAINERS = [1875, 1925, 1951, 1970]
+

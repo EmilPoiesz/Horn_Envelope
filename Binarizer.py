@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import random
 
+from config import AGE_CONTAINERS
+
 class Binarizer:
     """
         Takes care of converting a datapoint of the given dataset to a binary vector and vice-versa. The conversion is 
@@ -20,14 +22,21 @@ class Binarizer:
                         that has each occupation written in a seperate line. With occ_file=False this expect an integer value to determine the 
                         threshold above which an occupation is included based on the dataset total amounts.
     """
-    def __init__(self, country_file : str, amount_containers: int, occupation):
+    def __init__(self, country_file : str, occupation):
+        self.continent_lookup = self.initialize_countries(country_file)
+        self.occupation_lookup = self.initialize_occupations(occupation)
+        self.age_containers = AGE_CONTAINERS
+        self.lengths = {'birth' : len(AGE_CONTAINERS), 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
+    
+    def __init__2(self, country_file : str, amount_containers: int, occupation):
         self.continent_lookup = self.initialize_countries(country_file)
         self.occupation_lookup = self.initialize_occupations(occupation)
         self.age_containers = pd.read_csv('data/age_containers' + str(amount_containers) + '.csv', header=None).to_numpy().flatten()
         self.lengths = {'birth' : amount_containers, 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
 
     def initialize_countries(self, country_file : str):
-        country_list = pd.read_csv(country_file, names=['nID', ' nationality', 'continent']).set_index('nID').fillna('?')
+        country_list = pd.read_csv(country_file, names=['nID', 'nationality', 'continent', 'is_valid']).set_index('nID').fillna('?')
+        country_list = country_list[country_list['is_valid'] == 'True'].drop(columns=['is_valid'])
         continents = country_list.continent.unique()
         continents = np.delete(continents, np.where(continents == '?'))
         continent_lookup = {continents[i] : i for i in range(len(continents))}
