@@ -3,16 +3,10 @@ import functools
 import random
 import timeit
 
-number_of_variables = 4
-
 def define_variables(number):
     s = "".join(['v'+str(i)+',' for i in range(number)])
     V = [e for e in symbols(s)]
     return V
-
-# V = define_variables(number_of_variables)
-
-
 
 def generate_target(V, n_clauses,n_body_literals=-1):
     T = set()
@@ -29,7 +23,6 @@ def generate_target(V, n_clauses,n_body_literals=-1):
                   else (clause) >> random.choice(V_implies))
         T.add(target)
     return T
-
 
 def evaluate(formula, x, V):
     if formula == true:
@@ -132,7 +125,19 @@ def isgointobeduplicate(list,a,bad_nc):
         return True
     else: return False
 
-def learn(V,MQ,EQ, bad_nc,bad_pc,background= {}, verbose = False,iterations=-1,guard=False):
+def learn(V, membership_oracle, equivalence_oracle, bad_nc, bad_pc, background= {}, verbose = False,iterations=-1,guard=False):
+    
+    # V is the set of all variables
+    # MQ is the membership query function
+    # EQ is the equivalence query function
+    # background is the background knowledge
+
+    # H is the hypothesis
+    # S is the set of examples
+    # Pos is the set of positive counterexamples
+
+    # eq_res is the result of the equivalence query, that is a counterexample
+
     terminated = False
     metadata = []
     average_samples = 0
@@ -147,9 +152,12 @@ def learn(V,MQ,EQ, bad_nc,bad_pc,background= {}, verbose = False,iterations=-1,g
     while True and iterations!=0:
         data = {}
         start = timeit.default_timer()
-        #Ask for H
-        eq_res = EQ(H)
-        if type(eq_res) == bool and eq_res:
+        
+        # Ask for a counterexample with respect to the current hypothesis
+        counter_example = equivalence_oracle.ask(H)
+
+        # If the result is True, then the hypothesis is correct
+        if type(counter_example) == bool and counter_example:
             terminated = True
             stop = timeit.default_timer()
             data['runtime'] = stop-start
@@ -157,8 +165,8 @@ def learn(V,MQ,EQ, bad_nc,bad_pc,background= {}, verbose = False,iterations=-1,g
             with open('output.txt', 'a') as f:
                 f.write("=== TERMINATED ===\n")
             break
-        else:
-            (x,i) = eq_res
+        
+        (x,i) = counter_example
         data['sample'] = i
         pos_ex=False
         if verbose ==2:
@@ -186,7 +194,7 @@ def learn(V,MQ,EQ, bad_nc,bad_pc,background= {}, verbose = False,iterations=-1,g
                 B = {index for index,value in enumerate(s) if value ==1}
                 if A.issubset(B) and not B.issubset(A): # A properly contained in B
                     idx = S.index(s)
-                    if MQ(s_intersection_x) == False and s_intersection_x not in bad_nc:
+                    if membership_oracle.ask(s_intersection_x) == False and s_intersection_x not in bad_nc:
                         checkduplicates(s_intersection_x,S,guard)
                         if not isgointobeduplicate(S,s_intersection_x,bad_nc):
                             S[idx] = s_intersection_x

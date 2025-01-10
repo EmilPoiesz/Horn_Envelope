@@ -23,29 +23,23 @@ class Binarizer:
                         threshold above which an occupation is included based on the dataset total amounts.
     """
     def __init__(self, country_file : str, occupation):
-        self.continent_lookup = self.initialize_countries(country_file)
+        self.continent_lookup  = self.initialize_countries(country_file)
         self.occupation_lookup = self.initialize_occupations(occupation)
-        self.age_containers = AGE_CONTAINERS
-        self.lengths = {'birth' : len(AGE_CONTAINERS), 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
-    
-    def __init__2(self, country_file : str, amount_containers: int, occupation):
-        self.continent_lookup = self.initialize_countries(country_file)
-        self.occupation_lookup = self.initialize_occupations(occupation)
-        self.age_containers = pd.read_csv('data/age_containers' + str(amount_containers) + '.csv', header=None).to_numpy().flatten()
-        self.lengths = {'birth' : amount_containers, 'continent' : len(self.continent_lookup), 'occupation' : len(self.occupation_lookup)}
+        self.age_containers    = AGE_CONTAINERS
+        self.lengths = {'birth': len(AGE_CONTAINERS), 'continent': len(self.continent_lookup), 'occupation': len(self.occupation_lookup)}
 
     def initialize_countries(self, country_file : str):
-        country_list = pd.read_csv(country_file, names=['nID', 'nationality', 'continent', 'is_valid']).set_index('nID').fillna('?')
-        country_list = country_list[country_list['is_valid'] == 'True'].drop(columns=['is_valid'])
-        continents = country_list.continent.unique()
-        continents = np.delete(continents, np.where(continents == '?'))
-        continent_lookup = {continents[i] : i for i in range(len(continents))}
-        # remove unknown as a lookup value, is represented by all zeroes vector!
-        return continent_lookup
+        countries = pd.read_csv(country_file, names=['nID', 'nationality', 'continent', 'is_valid']).set_index('nID').fillna('?')
+        countries = countries[countries['is_valid'] == 'True'].drop(columns=['is_valid'])
+        continents = countries.continent.unique()
+        
+        return {continents[i] : i for i in range(len(continents))}
+
     
     def initialize_occupations(self, occupation):
         if isinstance(occupation, str):
-            occupations = pd.read_csv(occupation).to_numpy().flatten()
+            occupations_df = pd.read_csv(occupation)
+            occupations = occupations_df[occupations_df['extracted'] == True]['occupation'].values
         elif isinstance(occupation, int):
             df = pd.read_csv('data/occupations_total.csv', index_col=0)
             sorted = df.sort_values(by=['total'], ignore_index=True)
