@@ -5,8 +5,7 @@ import timeit
 
 def define_variables(number):
     s = "".join(['v'+str(i)+',' for i in range(number)])
-    V = [e for e in symbols(s)]
-    return V
+    return list(symbols(s))
 
 def generate_target(V, n_clauses,n_body_literals=-1):
     T = set()
@@ -125,7 +124,8 @@ def isgointobeduplicate(list,a,bad_nc):
         return True
     else: return False
 
-def learn(V, membership_oracle, equivalence_oracle, bad_nc, bad_pc, background= {}, verbose = False,iterations=-1,guard=False):
+
+def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, background= {}, verbose = False,iterations=-1,guard=False):
     
     # V is the set of all variables
     # MQ is the membership query function
@@ -154,7 +154,7 @@ def learn(V, membership_oracle, equivalence_oracle, bad_nc, bad_pc, background= 
         start = timeit.default_timer()
         
         # Ask for a counterexample with respect to the current hypothesis
-        counter_example = equivalence_oracle.ask(H)
+        counter_example = ask_equivalence_oracle(H)
 
         # If the result is True, then the hypothesis is correct
         if type(counter_example) == bool and counter_example:
@@ -194,7 +194,7 @@ def learn(V, membership_oracle, equivalence_oracle, bad_nc, bad_pc, background= 
                 B = {index for index,value in enumerate(s) if value ==1}
                 if A.issubset(B) and not B.issubset(A): # A properly contained in B
                     idx = S.index(s)
-                    if membership_oracle.ask(s_intersection_x) == False and s_intersection_x not in bad_nc:
+                    if ask_membership_oracle(s_intersection_x) == False and s_intersection_x not in bad_nc:
                         checkduplicates(s_intersection_x,S,guard)
                         if not isgointobeduplicate(S,s_intersection_x,bad_nc):
                             S[idx] = s_intersection_x

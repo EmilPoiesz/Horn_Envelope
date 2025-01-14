@@ -8,29 +8,35 @@ from helper_functions import *
 from scipy.special import comb
 import pickle
 import json
+from config import EPSILON, DELTA
 
-binarizer = Binarizer('data/known_countries.csv', 'data/occupations.csv')
-attributes = ['birth', 'continent', 'occupation']
 
-# add 2 dimensions for the gender variables (last variables in the vector)
-dim = sum(binarizer.lengths.values()) + 2
-V = define_variables(dim)
-#models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-models = ['roberta-base']
-eq_amounts = [50, 100, 150, 200]
-language_model = models[0]
-#seed = 123 #reproducability
-epsilon = 0.2
-delta = 0.1
 
-def get_eq_sample_size(epsilon=epsilon, delta=delta):
+def get_eq_sample_size(lengths):
+    """
+    Calculate the equivalent sample size needed for PAC learning.
+    This function computes the number of samples required to learn with 
+    probability (1 - delta) and accuracy epsilon using the PAC (Probably 
+    Approximately Correct) learning framework. The formula used here 
+    combines the logarithms of the original PAC learning formula into a 
+    single logarithm, which is valid when the number of hypotheses is finite.
+    Args:
+        lengths (dict): A dictionary where the keys are feature names and 
+                        the values are the number of possible values for 
+                        each feature.
+    Returns:
+        int: The number of samples needed to achieve the desired learning 
+             accuracy and confidence.
+    """
     
+    total_hypotheses = 1
+    for length in lengths.values():
+        total_hypotheses *= length
+
     # Why is this the number of possible examples?
-    H = 1080 # number of possible examples
-    
-    # Which distribution is this?
-    # int (1/epsilon * log(2^H / delta))
-    return int ( (1/epsilon) * log( (Pow(2,H) / delta), 2))
+    #H = 1080 # number of possible examples
+
+    return int ( (1/EPSILON) * log( (Pow(2,total_hypotheses) / DELTA), 2))
 
 def get_random_sample(length, allow_zero = True, amount_of_true=1):
     vec = np.zeros(length, dtype=np.int8)
@@ -87,21 +93,19 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
 
     return (vec,label)
 
-def custom_EQ(H, lm, unmasker, V, bad_nc, binarizer : Binarizer):
+def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, binarizer : Binarizer):
     h = true
     if len(H):
         h = set2theory(H)
     for i in range(get_eq_sample_size()):
         (a,l) = create_single_sample(lm, binarizer, unmasker)
         if l == 0 and evaluate(h,a,V) and a not in bad_nc:
-            #print("Sample number", i+1)
             return (a, i+1)
         if l == 1 and not evaluate(h,a,V):
-            #print("Sample number ", i+1)
             return (a, i+1)
     return True
 
-def custom_MQ(assignment, lm, unmasker, binarizer : Binarizer):
+def ask_membership_oracle(assignment, lm, unmasker, binarizer : Binarizer):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
     s = binarizer.sentence_from_binary(vec)
@@ -110,145 +114,167 @@ def custom_MQ(assignment, lm, unmasker, binarizer : Binarizer):
     res  = ( True if label == 1
                 else False)
     return res
-
-class MembershipOracle:
-    def __init__(self, lm, unmasker, binarizer):
-        self.lm = lm
-        self.unmasker = unmasker
-        self.binarizer = binarizer
-
-    def ask(self, assignment):
-        vec = assignment[:-2]
-        gender_vec = assignment[-2:]
-        s = self.binarizer.sentence_from_binary(vec)
-        classification = get_prediction(lm_inference(self.unmasker, s, model=self.lm), binary=True)
-        label = get_label(classification, gender_vec)
-        return label == 1
     
-class EquivalenceOracle:
-    def __init__(self, lm, unmasker, V, bad_nc, binarizer):
-        self.lm = lm
-        self.unmasker = unmasker
-        self.V = V
-        self.bad_nc = bad_nc
-        self.binarizer = binarizer
-
-    def ask(self, H):
-        h = True
-        if len(H):
-            h = set2theory(H)
-        
-        # Is get_eq_sample_size calculating the number of samples to take before we find a counterexample?
-        for i in range(get_eq_sample_size()):
-            (a, l) = create_single_sample(self.lm, self.binarizer, self.unmasker)
-            if l == 0 and evaluate(h, a, self.V) and a not in self.bad_nc:
-                return (a, i + 1)
-            if l == 1 and not evaluate(h, a, self.V):
-                return (a, i + 1)
-        return True
-    
-def extract_horn_with_queries_1(lm, V, iterations, binarizer, background, verbose = 0):
+def extract_horn_with_queries(lm, V, iterations, binarizer, background, verbose = 0):
     bad_pc = []
     bad_ne =[]
     unmasker = pipeline('fill-mask', model=lm)
-    mq = MembershipOracle(lm, unmasker, binarizer)
-    eq = EquivalenceOracle(lm, unmasker, V, bad_ne, binarizer)
-    #mq = lambda a : custom_MQ(a, lm, unmasker, binarizer)
-    #eq = lambda a : custom_EQ(a, lm, unmasker, V, bad_ne, binarizer)
+    
+    # Create lambda functions for asking the membership and equivalence oracles.
+    ask_membership = lambda assignment : ask_membership_oracle(assignment, lm, unmasker, binarizer)
+    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, binarizer) 
 
     start = timeit.default_timer()
-    terminated, metadata, h = learn(V, mq, eq, bad_ne, bad_pc, background = background, iterations=iterations, verbose = verbose)
+    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, background = background, iterations=iterations, verbose = verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 
     return (h,runtime, terminated, metadata)
 
-#background is hand-written, but could be automated as well
-background = {(~(V[0] & V[1])),
-(~(V[0] & V[2])),
-(~(V[0] & V[3])),
-(~(V[0] & V[4])),
-(~(V[1] & V[2])),
-(~(V[1] & V[3])),
-(~(V[1] & V[4])),
-(~(V[2] & V[3])),
-(~(V[2] & V[4])),
-(~(V[3] & V[4])),
-(~(V[5] & V[6])),
-(~(V[5] & V[7])),
-(~(V[5] & V[8])),
-(~(V[5] & V[9])),
-(~(V[5] & V[10])),
-(~(V[5] & V[11])),
-(~(V[5] & V[12])),
-(~(V[5] & V[13])),
-(~(V[6] & V[7])),
-(~(V[6] & V[8])),
-(~(V[6] & V[9])),
-(~(V[6] & V[10])),
-(~(V[6] & V[11])),
-(~(V[6] & V[12])),
-(~(V[6] & V[13])),
-(~(V[7] & V[8])),
-(~(V[7] & V[9])),
-(~(V[7] & V[10])),
-(~(V[7] & V[11])),
-(~(V[7] & V[12])),
-(~(V[7] & V[13])),
-(~(V[8] & V[9])),
-(~(V[8] & V[10])),
-(~(V[8] & V[11])),
-(~(V[8] & V[12])),
-(~(V[8] & V[13])),
-(~(V[9] & V[10])),
-(~(V[9] & V[11])),
-(~(V[9] & V[12])),
-(~(V[9] & V[13])),
-(~(V[10] & V[11])),
-(~(V[10] & V[12])),
-(~(V[10] & V[13])),
-(~(V[11] & V[12])),
-(~(V[11] & V[13])),
-(~(V[12] & V[13])),
-(~(V[14] & V[15])),
-(~(V[14] & V[16])),
-(~(V[14] & V[17])),
-(~(V[14] & V[18])),
-(~(V[14] & V[19])),
-(~(V[14] & V[20])),
-(~(V[14] & V[21])),
-(~(V[15] & V[16])),
-(~(V[15] & V[17])),
-(~(V[15] & V[18])),
-(~(V[15] & V[19])),
-(~(V[15] & V[20])),
-(~(V[15] & V[21])),
-(~(V[16] & V[17])),
-(~(V[16] & V[18])),
-(~(V[16] & V[19])),
-(~(V[16] & V[20])),
-(~(V[16] & V[21])),
-(~(V[17] & V[18])),
-(~(V[17] & V[19])),
-(~(V[17] & V[20])),
-(~(V[17] & V[21])),
-(~(V[18] & V[19])),
-(~(V[18] & V[20])),
-(~(V[18] & V[21])),
-(~(V[19] & V[20])),
-(~(V[19] & V[21])),
-(~(V[20] & V[21])),
-(~(V[22] & V[23])),
-}
+def make_disjoint(V):
+    """
+    Create a disjoint set of variables from the list V.
+    
+    Parameters:
+    V (list): A list of variables to be made disjoint.
+    
+    Returns:
+    set: A set of disjoint variables.
+    """
+    disjoint_set = set()
+    for i in range(len(V)-1):
+        for j in range(i+1, len(V)):
+            disjoint_set.add(~(V[i] & V[j]))
+    return disjoint_set
 
-#5000 as a placeholder for an uncapped run (it will terminate way before reaching this)
-eq = 5000
-r=0
-for language_model in models:
-    #for eq in eq_amounts:
-    (h,runtime,terminated, average_samples) = extract_horn_with_queries_1(language_model, V, eq, binarizer, background, verbose=2)
-    metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
-    with open('data/rule_extraction/' + language_model + '_metadata_' + str(eq) + "_" + str(r+1) + '.json', 'w') as outfile:
-        json.dump(metadata, outfile)
-    with open('data/rule_extraction/' + language_model + '_rules_' + str(eq) + "_" + str(r+1) + '.txt', 'wb') as f:
-        pickle.dump(h, f)
+def create_background(lengths, V):
+    """
+    Create background knowledge as a set of disjoint variables for birth, continent, occupation, and gender.
+
+    Parameters:
+    lengths (dict): A dictionary containing the lengths of each attribute.
+    V (list): A list of variables.
+
+    Returns:
+    set: A set of disjoint variables representing the background knowledge.
+    """
+    birth_end      = lengths['birth']
+    continent_end  = birth_end + lengths['continent']
+    occupation_end = continent_end + lengths['occupation']
+    gender_end     = occupation_end + lengths['gender']
+
+    birth      = make_disjoint(V[:birth_end])
+    continent  = make_disjoint(V[birth_end:continent_end])
+    occupation = make_disjoint(V[continent_end:occupation_end])
+    gender     = make_disjoint(V[occupation_end:gender_end])
+    return birth | continent | occupation | gender
+
+
+if __name__ == '__main__':
+    
+    # The binarizer is used to convert the data into a binary format that can be used by the Horn algorithm.
+    binarizer = Binarizer('data/known_countries.csv', 'data/occupations.csv')
+    attributes = ['birth', 'continent', 'occupation']
+
+    V = define_variables(binarizer.lengths.values())
+    #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
+    models = ['roberta-base']
+    eq_amounts = [50, 100, 150, 200]
+    language_model = models[0]
+    #seed = 123 #reproducability
+    epsilon = 0.2
+    delta = 0.1
+
+    background = create_background(binarizer.lengths, V)
+    # background is hand-written, but could be automated as well
+    # Background knowledge is a set of Horn clauses that are known to be true in the target theory.
+    # In this case, it is known that only one of the variables in each group can be true at the same time.
+    # This doesnt work because I have different number of continents and occupations.
+    #background = {(~(V[0] & V[1])),
+    #(~(V[0] & V[2])),
+    #(~(V[0] & V[3])),
+    #(~(V[0] & V[4])),
+    #(~(V[1] & V[2])),
+    #(~(V[1] & V[3])),
+    #(~(V[1] & V[4])),
+    #(~(V[2] & V[3])),
+    #(~(V[2] & V[4])),
+    #(~(V[3] & V[4])), # Only one of V0 - V4, can only be born in one time
+    #(~(V[5] & V[6])),
+    #(~(V[5] & V[7])),
+    #(~(V[5] & V[8])),
+    #(~(V[5] & V[9])),
+    #(~(V[5] & V[10])),
+    #(~(V[5] & V[11])),
+    #(~(V[5] & V[12])),
+    #(~(V[5] & V[13])),
+    #(~(V[6] & V[7])),
+    #(~(V[6] & V[8])),
+    #(~(V[6] & V[9])),
+    #(~(V[6] & V[10])),
+    #(~(V[6] & V[11])),
+    #(~(V[6] & V[12])),
+    #(~(V[6] & V[13])),
+    #(~(V[7] & V[8])),
+    #(~(V[7] & V[9])),
+    #(~(V[7] & V[10])),
+    #(~(V[7] & V[11])),
+    #(~(V[7] & V[12])),
+    #(~(V[7] & V[13])),
+    #(~(V[8] & V[9])),
+    #(~(V[8] & V[10])),
+    #(~(V[8] & V[11])),
+    #(~(V[8] & V[12])),
+    #(~(V[8] & V[13])),
+    #(~(V[9] & V[10])),
+    #(~(V[9] & V[11])),
+    #(~(V[9] & V[12])),
+    #(~(V[9] & V[13])),
+    #(~(V[10] & V[11])),
+    #(~(V[10] & V[12])),
+    #(~(V[10] & V[13])),
+    #(~(V[11] & V[12])),
+    #(~(V[11] & V[13])),
+    #(~(V[12] & V[13])), # Only one of V5 - V13, can only be born in one continent
+    #(~(V[14] & V[15])),
+    #(~(V[14] & V[16])),
+    #(~(V[14] & V[17])),
+    #(~(V[14] & V[18])),
+    #(~(V[14] & V[19])),
+    #(~(V[14] & V[20])),
+    #(~(V[14] & V[21])),
+    #(~(V[15] & V[16])),
+    #(~(V[15] & V[17])),
+    #(~(V[15] & V[18])),
+    #(~(V[15] & V[19])),
+    #(~(V[15] & V[20])),
+    #(~(V[15] & V[21])),
+    #(~(V[16] & V[17])),
+    #(~(V[16] & V[18])),
+    #(~(V[16] & V[19])),
+    #(~(V[16] & V[20])),
+    #(~(V[16] & V[21])),
+    #(~(V[17] & V[18])),
+    #(~(V[17] & V[19])),
+    #(~(V[17] & V[20])),
+    #(~(V[17] & V[21])),
+    #(~(V[18] & V[19])),
+    #(~(V[18] & V[20])),
+    #(~(V[18] & V[21])),
+    #(~(V[19] & V[20])),
+    #(~(V[19] & V[21])),
+    #(~(V[20] & V[21])), # Only one of V14 - V21, can only have one occupation
+    #(~(V[22] & V[23])), # Only one of V22 and V23, can only be of one gender
+    #}
+
+    #5000 as a placeholder for an uncapped run (it will terminate way before reaching this)
+    iterations = 5000
+    r=0
+    for language_model in models:
+        #for eq in eq_amounts:
+        (h,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, verbose=2)
+        metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
+        with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
+            json.dump(metadata, outfile)
+        with open('data/rule_extraction/' + language_model + '_rules_' + str(iterations) + "_" + str(r+1) + '.txt', 'wb') as f:
+            pickle.dump(h, f)

@@ -26,7 +26,7 @@ class Binarizer:
         self.continent_lookup  = self.initialize_countries(country_file)
         self.occupation_lookup = self.initialize_occupations(occupation)
         self.age_containers    = AGE_CONTAINERS
-        self.lengths = {'birth': len(AGE_CONTAINERS), 'continent': len(self.continent_lookup), 'occupation': len(self.occupation_lookup)}
+        self.lengths = {'birth': len(AGE_CONTAINERS), 'continent': len(self.continent_lookup), 'occupation': len(self.occupation_lookup), 'gender': 2}
 
     def initialize_countries(self, country_file : str):
         countries = pd.read_csv(country_file, names=['nID', 'nationality', 'continent', 'is_valid']).set_index('nID').fillna('?')
