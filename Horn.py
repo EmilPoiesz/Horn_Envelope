@@ -35,6 +35,8 @@ def generate_target(V, n_clauses,n_body_literals=-1):
     return T
 
 def evaluate(formula, x, V):
+    # What does it mean here to say that a formula is true or false?
+    # Related to free symbols?
     if formula == true:
         return True
     if formula == false:
@@ -133,8 +135,14 @@ def checkduplicates(x,S,enabled):
         raise Exception('I am trying to add {} to S but the negative counterexample {} is already present in S.\nIf you are learning from examples classified by a neural network, it means that it is not encoding a horn theory.'.format(x,x))
 
 def identify_problematic_nc(H,S,bad_nc,V):
+    # Is nc -> Non-norn Clause?
+
+    # Current hypothesis
     h=from_set_to_theory(H)
-    for a in [a for a in S if a not in bad_nc]:
+    # List of negative? counterexamples that cannot produce a rule (according to positive counterexamples)?
+    for a in [a for a in S if a not in bad_nc]: # Why bad? What does bad mean here?
+        # If they are true, then are they negative counterexamples?
+        # This feels like something that is correlated to NON-HORN section of the algorithm?
         if (evaluate(h, a, V) == True):
             bad_nc.append(a)
 
@@ -162,8 +170,9 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, back
     metadata = []
     average_samples = 0
     eq_done = 0
-    H = set()
-    H = H.union(background)
+    HYPOTHESIS = set()
+    HYPOTHESIS = HYPOTHESIS.union(background)
+    # is S in this case negative counterexamples?
     S = []
     #remember positive counterexamples
     Pos = []
@@ -174,7 +183,9 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, back
         start = timeit.default_timer()
         
         # Ask for a counterexample with respect to the current hypothesis
-        counter_example = ask_equivalence_oracle(H)
+        # The counter example is using PAC learning. Asking for a set amount of samples, 
+        # and if no sample is found to contradict the hypothesis, then the hypothesis is considered correct.
+        counter_example = ask_equivalence_oracle(HYPOTHESIS)
 
         # If the result is True, then the hypothesis is correct
         if type(counter_example) == bool and counter_example:
@@ -186,56 +197,105 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, back
                 f.write("=== TERMINATED ===\n")
             break
         
-        (x,i) = counter_example
-        data['sample'] = i
+        (counter_example_assignment,sample_number) = counter_example
+        data['sample'] = sample_number
         pos_ex=False
+        
         if verbose ==2:
-            print('Iteration {}\n\nhypothesis is {}.\n\ncounterexample: {}\n\nS: {}\nbad_nc is{}\n\nbad_pc is{}\n\n\n\n\n'.format(abs(iterations),H,x,S,bad_nc,bad_pc))
-            # input()
+            print(f'\nIteration: {abs(iterations)}\n\n' + 
+                  f'Hypothesis: {sorted([str(h) for h in HYPOTHESIS])}.\n\n' +
+                  f'Hypothesis length: {len(HYPOTHESIS)}.\n\n' +
+                  f'Counterexample: {counter_example_assignment}\n\n'+
+                  f'Samples: {S}\n' +
+                  f'bad_nc:  {bad_nc}\n' +
+                  f'bad_pc:  {bad_pc}\n\n\n\n')
         elif verbose == 1:
-            print('Iteration {}     '.format(abs(iterations)),end='\r')
-        #If x is pos ce
-        for clause in H.copy():
-            if (evaluate(clause, x,V) == False):
+            print(f'Iteration {abs(iterations)}', end='\r')
+        
+        # If x is positive counterexample
+        # Which means that the counterexample should be true but the hypothesis says it is false.
+        for clause in HYPOTHESIS.copy():
+            # Find the clause in H that the counter example breaks
+            if (evaluate(clause, counter_example_assignment,V) == False):
+                # If the clause is a background restriction clause then the counter example is a bad example.
+                # The background restrictions is just ensuring one-hot-encoding of the variables.
                 if clause in background:
-                    bad_pc.append(x)
+                    bad_pc.append(counter_example_assignment)
+                
+                # If the clause is not a background restriction clause then remove it from H
+                # In the algorithm, the counterexample is added to a list of positive counter examples,
+                # then the hypothesis is reconstructed with all the positive counter examples gathered so far.
+                # Why do we simply remove the clause from the hypothesis here?
                 else:
-                    H.remove(clause)
-                    Pos.append(x)
+                    HYPOTHESIS.remove(clause)
+                    # Add the counter example to positive counter examples
+                    # This counter example is added multiple times. Once for every clause in the
+                    # hypothesis that it breaks. Isn't this redundant?
+                    Pos.append(counter_example_assignment)
+
+                    # TODO: This is a bit confusing. What is the purpose of this?
+                    # Doesn't nc mean negative counterexample? This is in the positive counterexample loop.
+                    # The c maybe means a clause?
+
                     #check if a nc in S does not falsify a clause in H
-                    identify_problematic_nc(H,S,bad_nc,V)
+                    # This updates the bad_nc list but we cannot see this from the code. 
+                    # Possible refactor?
+                    identify_problematic_nc(HYPOTHESIS,S,bad_nc,V)
+                    
+                    # Flag that the counter example is a positive counter example
                     pos_ex = True
+
         if not pos_ex:
-            #If x is neg ce
+            # If x is negative counterexample
+            # This means that the counter example is false but the hypothesis says it is true so we should change the hypothesis.
             replaced = False
             for s in S:
-                s_intersection_x = [1 if s[index] ==1 and x[index] == 1 else 0 for index in range(len(V))]
+                # Here we are looking for intersections of assignments between the negative counterexample and previous samples in S.
+                s_intersection_x = [1 if s[index] ==1 and counter_example_assignment[index] == 1 else 0 for index in range(len(V))]
+                # A contains everywhere there is intersection between the sample s and the counter example.
+                # B contains everywhere there is a 1 in the sample s.
                 A = {index for index,value in enumerate(s_intersection_x) if value ==1}
                 B = {index for index,value in enumerate(s) if value ==1}
                 if A.issubset(B) and not B.issubset(A): # A properly contained in B
+                    # We refine a negative counterexample.
+                    # This is the first such instance where a negative counter example is properly explained by a smaller counterexample. Line 7 in the original algorithm.
                     idx = S.index(s)
+                    # We ask MQ if response is no. Line 6 in the algorithm.
                     if ask_membership_oracle(s_intersection_x) == False and s_intersection_x not in bad_nc:
+                        # Did we already find it? We cannot control what counterexamples the LLM will give us.
+                        # this simply does a print that the intersection is already in S. It does not do anything else.
                         checkduplicates(s_intersection_x,S,guard)
+                        
+                        # The name of this method is confusing. Is it is_go_into_be_duplicate?
+                        # is_going_to_be_duplicate? (missing g)
+                        # It checks if the intersection is already in S, if so add it to bad_nc.
+
+                        # Potential issues: You are modifying the bad_nc list in a if check. 
+                        # This is not clear from the code. TODO: potential refactor.
                         if not isgointobeduplicate(S,s_intersection_x,bad_nc):
                             S[idx] = s_intersection_x
                             replaced = True
                         break
             if not replaced:
-                checkduplicates(x,S,guard)
-                S.append(x)
+                # We weren't able to refine a already present negative counter example.
+                # Again the checkduplicates method is called. The method still doesnt do anything other than raise an exception.
+                checkduplicates(counter_example_assignment,S,guard)
+                # What gets added to S here?
+                S.append(counter_example_assignment)
 
-            H = get_hypothesis(S,V,bad_nc,background)
+            # Reconstruct the hypothesis. Line 14 in the algorithm.
+            HYPOTHESIS = get_hypothesis(S,V,bad_nc,background)
             #small optimisation. Refine hypo. with known positive counterexamples.
-            H = positive_check_and_prune(H,S,Pos,V,bad_nc)
+            HYPOTHESIS = positive_check_and_prune(HYPOTHESIS,S,Pos,V,bad_nc)
         iterations-=1
         stop = timeit.default_timer()
         data['runtime'] = stop-start
         metadata.append(data)
         if iterations % 5 == 0:
-            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(H), rt = data['runtime'])
+            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(HYPOTHESIS), rt = data['runtime'])
             with open('output.txt', 'a') as f:
                 f.write(sentence)
-    return (terminated, metadata, H)
+    return (terminated, metadata, HYPOTHESIS)
 
 #this is the target
 # T = {((V[0] & V[1]) >> V[2]), (V[0] & V[3]) >> False}

@@ -32,12 +32,16 @@ def get_hypothesis_space(lengths):
         total_hypotheses *= length
 
     # Why is this the number of possible examples?
-    #H = 1080 # number of possible examples
+    # H = 1080 # number of possible examples
 
     return int ( (1/EPSILON) * log( (Pow(2,total_hypotheses) / DELTA), 2))
 
 def get_random_sample(length, allow_zero = True, amount_of_true=1):
     vec = np.zeros(length, dtype=np.int8)
+
+    # TODO: is it needed to allow for all zeroes? The probability of equal possibility is higher
+    # when the length of the attribute is smaller. It confused me why a "all equal" vector is needed.
+
     # allow for all zeroes: one extra sample length and if its out of index range, use all zeroes vector (equal possibility)
     if allow_zero:
         idx = random.sample(range(length + 1), k=amount_of_true)
@@ -68,13 +72,13 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
         # get the appropriate vector for each attribute and tie them together in the end
         vec = [*vec, *get_random_sample(binarizer.lengths[att], allow_zero=True)]
     
-    # Create a sentence from the binary vector to use as input for the language model.
     s = binarizer.sentence_from_binary(vec)
-    
     if verbose: print(s)
 
     # Ask the language model to predict the gender of the person in the sentence.
     # classification: 0 = female, 1 = male
+
+    # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
     classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
     
     # Generate the gender of the person and append to the vector ([female, male])
@@ -84,23 +88,39 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
     gender_vec = get_random_sample(2, allow_zero=False)
     vec = [*vec, *gender_vec]
     
-    # if the sampled gender is equal the classification (correctly classified) then we return 1 as 'is valid sentence' 
-    # if sampled gender and classification don't match, the sample is not valid and we return 0 as a label
+    # if the sampled gender is equal the classification (correctly classified) then we return 1 
+    # if sampled gender and classification don't match, then we return 0 
     label = get_label(classification, gender_vec)
-    if verbose: print((vec,classification, gender_vec, label))
+    if verbose: print((vec, classification, gender_vec, label))
 
     return (vec,label)
 
 def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, hypothesis_space, binarizer:Binarizer):
     h = true
     if len(H):
+        # Create a long AND formula from all the clauses in the hypothesis.
         h = from_set_to_theory(H)
+    
+    # Looking through the number of examples needed according to the PAC learning framework.
+    # When do we look at the next example?
+    # - When the prediction of the sample is False and the sample breaks the current hypothesis.
+    # - When the prediction of the sample is False and the assignment is in the bad_nc list.
+    # - When the prediction of the sample is True and the sample follows the current hypothesis.
+
+    # Small Example:
+    # The hypothesis is the background knowledge, which is a set of disjoint variables.
+    # H = !(a&b) & !(a&c) & !(b&c) & !(d&e)
+    #
+    # All predictions follow the hypothesis, so we need to find a counterexample where the prediction is False.
+    # assignment = [1,0,0,  0,1] -> label = 0
+    #
+    # Why do we return i+1 here? -Keeping track of the number of examples needed to find a counterexample.
     for i in range(hypothesis_space):
-        (a,l) = create_single_sample(lm, binarizer, unmasker)
-        if l == 0 and evaluate(h,a,V) and a not in bad_nc:
-            return (a, i+1)
-        if l == 1 and not evaluate(h,a,V):
-            return (a, i+1)
+        (assignment,label) = create_single_sample(lm, binarizer, unmasker)
+        if label == 0 and evaluate(h,assignment,V) and assignment not in bad_nc:
+            return (assignment, i+1)
+        if label == 1 and not evaluate(h,assignment,V):
+            return (assignment, i+1)
     return True
 
 def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
