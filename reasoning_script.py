@@ -10,9 +10,7 @@ import pickle
 import json
 from config import EPSILON, DELTA
 
-
-
-def get_eq_sample_size(lengths):
+def get_hypothesis_space(lengths):
     """
     Calculate the equivalent sample size needed for PAC learning.
     This function computes the number of samples required to learn with 
@@ -93,11 +91,11 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
 
     return (vec,label)
 
-def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, binarizer : Binarizer):
+def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, hypothesis_space, binarizer:Binarizer):
     h = true
     if len(H):
-        h = set2theory(H)
-    for i in range(get_eq_sample_size()):
+        h = from_set_to_theory(H)
+    for i in range(hypothesis_space):
         (a,l) = create_single_sample(lm, binarizer, unmasker)
         if l == 0 and evaluate(h,a,V) and a not in bad_nc:
             return (a, i+1)
@@ -105,7 +103,7 @@ def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, binarizer : Binarizer):
             return (a, i+1)
     return True
 
-def ask_membership_oracle(assignment, lm, unmasker, binarizer : Binarizer):
+def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
     s = binarizer.sentence_from_binary(vec)
@@ -115,14 +113,14 @@ def ask_membership_oracle(assignment, lm, unmasker, binarizer : Binarizer):
                 else False)
     return res
     
-def extract_horn_with_queries(lm, V, iterations, binarizer, background, verbose = 0):
+def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothesis_space, verbose = 0):
     bad_pc = []
     bad_ne =[]
     unmasker = pipeline('fill-mask', model=lm)
     
     # Create lambda functions for asking the membership and equivalence oracles.
-    ask_membership = lambda assignment : ask_membership_oracle(assignment, lm, unmasker, binarizer)
-    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, binarizer) 
+    ask_membership  = lambda assignment : ask_membership_oracle(assignment, lm, unmasker, binarizer)
+    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, hypothesis_space, binarizer) 
 
     start = timeit.default_timer()
     terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, background = background, iterations=iterations, verbose = verbose)
@@ -176,7 +174,8 @@ if __name__ == '__main__':
     binarizer = Binarizer('data/known_countries.csv', 'data/occupations.csv')
     attributes = ['birth', 'continent', 'occupation']
 
-    V = define_variables(binarizer.lengths.values())
+    V = define_variables(sum(binarizer.lengths.values()))
+    hypothesis_space = get_hypothesis_space(binarizer.lengths)
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
     models = ['roberta-base']
     eq_amounts = [50, 100, 150, 200]
@@ -272,7 +271,7 @@ if __name__ == '__main__':
     r=0
     for language_model in models:
         #for eq in eq_amounts:
-        (h,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, verbose=2)
+        (h,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, hypothesis_space, verbose=2)
         metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
         with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
             json.dump(metadata, outfile)

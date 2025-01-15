@@ -4,6 +4,17 @@ import random
 import timeit
 
 def define_variables(number):
+    """
+    Generate a list of symbolic variables.
+
+    This function creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
+
+    Parameters:
+    number (int): The number of symbolic variables to generate.
+
+    Returns:
+    list: A list of symbolic variables.
+    """
     s = "".join(['v'+str(i)+',' for i in range(number)])
     return list(symbols(s))
 
@@ -34,7 +45,16 @@ def evaluate(formula, x, V):
                         else False)
     return True if formula.subs(a) == True else False
 
-def set2theory(set):
+def from_set_to_theory(set):
+    """
+    Converts a set of boolean values to a single boolean value using logical AND.
+
+    Args:
+        set (iterable): An iterable of boolean values.
+
+    Returns:
+        bool: The result of performing a logical AND operation on all elements in the set.
+    """
     tempt = True
     for e in set:
         tempt = tempt & e
@@ -46,7 +66,7 @@ def entails(T,clause,V):
     Returns an assignment that falsifies c and satisfies T
      if the check is false.
     '''
-    T1 = set2theory(T)
+    T1 = from_set_to_theory(T)
     assignment =satisfiable(T1 & ~clause)
     res =[0 for i in range(len(V))]
     if assignment != False :
@@ -71,7 +91,7 @@ def EQ(H, V, target):
     return True
 
 def MQ(assignment, V, target):
-    t = set2theory(target)
+    t = from_set_to_theory(target)
     return evaluate(t,assignment,V)
 
 def get_hypothesis(S, V,bad_nc,background):
@@ -113,7 +133,7 @@ def checkduplicates(x,S,enabled):
         raise Exception('I am trying to add {} to S but the negative counterexample {} is already present in S.\nIf you are learning from examples classified by a neural network, it means that it is not encoding a horn theory.'.format(x,x))
 
 def identify_problematic_nc(H,S,bad_nc,V):
-    h=set2theory(H)
+    h=from_set_to_theory(H)
     for a in [a for a in S if a not in bad_nc]:
         if (evaluate(h, a, V) == True):
             bad_nc.append(a)
@@ -128,8 +148,8 @@ def isgointobeduplicate(list,a,bad_nc):
 def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, background= {}, verbose = False,iterations=-1,guard=False):
     
     # V is the set of all variables
-    # MQ is the membership query function
-    # EQ is the equivalence query function
+    # ask_membership_oracle is the membership query function
+    # ask_equivalence_oracle is the equivalence query function
     # background is the background knowledge
 
     # H is the hypothesis
