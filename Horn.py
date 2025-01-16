@@ -2,6 +2,7 @@ from sympy import *
 import functools
 import random
 import timeit
+import Binarizer
 
 def define_variables(number):
     """
@@ -18,6 +19,7 @@ def define_variables(number):
     s = "".join(['v'+str(i)+',' for i in range(number)])
     return list(symbols(s))
 
+#TODO: This is not used?
 def generate_target(V, n_clauses,n_body_literals=-1):
     T = set()
     for i in range(n_clauses):
@@ -62,6 +64,7 @@ def from_set_to_theory(set):
         tempt = tempt & e
     return tempt
 
+#TODO: This is not used?
 def entails(T,clause,V):
     '''
     Checks if T entails a horn clause c.
@@ -78,7 +81,7 @@ def entails(T,clause,V):
         return res
     return True
 
-
+# TODO: This is not used?
 def EQ(H, V, target):
     for c in H:
         answer = entails(target,c,V)
@@ -92,6 +95,7 @@ def EQ(H, V, target):
             return answer
     return True
 
+# TODO: This is not used?
 def MQ(assignment, V, target):
     t = from_set_to_theory(target)
     return evaluate(t,assignment,V)
@@ -108,6 +112,7 @@ def get_hypothesis(S, V,bad_nc,background):
     H = H.union(background)
     return H
 
+# TODO: this is not used?
 def get_body(clause):
     if type(clause.args[0]) == Symbol:
         return (clause.args[0],)
@@ -153,7 +158,7 @@ def isgointobeduplicate(list,a,bad_nc):
     else: return False
 
 
-def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, background= {}, verbose = False,iterations=-1,guard=False):
+def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, binarizer:Binarizer, background= {}, verbose = False,iterations=-1,guard=False):
     
     # V is the set of all variables
     # ask_membership_oracle is the membership query function
@@ -200,17 +205,6 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, back
         (counter_example_assignment,sample_number) = counter_example
         data['sample'] = sample_number
         pos_ex=False
-        
-        if verbose ==2:
-            print(f'\nIteration: {abs(iterations)}\n\n' + 
-                  f'Hypothesis: {sorted([str(h) for h in HYPOTHESIS])}.\n\n' +
-                  f'Hypothesis length: {len(HYPOTHESIS)}.\n\n' +
-                  f'Counterexample: {counter_example_assignment}\n\n'+
-                  f'Samples: {S}\n' +
-                  f'bad_nc:  {bad_nc}\n' +
-                  f'bad_pc:  {bad_pc}\n\n\n\n')
-        elif verbose == 1:
-            print(f'Iteration {abs(iterations)}', end='\r')
         
         # If x is positive counterexample
         # Which means that the counterexample should be true but the hypothesis says it is false.
@@ -287,6 +281,19 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, back
             HYPOTHESIS = get_hypothesis(S,V,bad_nc,background)
             #small optimisation. Refine hypo. with known positive counterexamples.
             HYPOTHESIS = positive_check_and_prune(HYPOTHESIS,S,Pos,V,bad_nc)
+        
+        if verbose ==2:
+            signed_counterexample = '+' if pos_ex else '-'
+            print(f'\nIteration: {abs(iterations)}\n\n' + 
+                  f'Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counter_example_assignment, has_gender=True)} \n\n'+
+                  f'New Hypothesis: {sorted([str(h) for h in HYPOTHESIS if h not in background])}\n\n' +
+                  f'New Hypothesis length: {len(HYPOTHESIS)-len(background)} + background: {len(background)}\n\n' +
+                  f'Samples: {S}\n' +
+                  f'bad_nc:  {bad_nc}\n' +
+                  f'bad_pc:  {bad_pc}\n\n\n\n')
+        elif verbose == 1:
+            print(f'Iteration {abs(iterations)}', end='\r')
+        
         iterations-=1
         stop = timeit.default_timer()
         data['runtime'] = stop-start

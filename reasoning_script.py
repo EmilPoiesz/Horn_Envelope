@@ -34,7 +34,7 @@ def get_hypothesis_space(lengths):
     # Why is this the number of possible examples?
     # H = 1080 # number of possible examples
 
-    return int ( (1/EPSILON) * log( (Pow(2,total_hypotheses) / DELTA), 2))
+    return int ( (1/EPSILON) * log( (Pow(2,total_hypotheses) / DELTA), 2)) #pow(x,2) gives total hypothesis space, total hypothesis= total clauses?
 
 def get_random_sample(length, allow_zero = True, amount_of_true=1):
     vec = np.zeros(length, dtype=np.int8)
@@ -82,7 +82,6 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
     classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
     
     # Generate the gender of the person and append to the vector ([female, male])
-    # NB: do this after querying the language model to avoid biasing the sample
     # TODO: does this represent the real world? We are only looking to see what occupations are more skewed.
     # Maybe here we should also include a 'they' option? Or generate while considering historical data?
     gender_vec = get_random_sample(2, allow_zero=False)
@@ -116,9 +115,11 @@ def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, hypothesis_space, binariz
     #
     # Why do we return i+1 here? -Keeping track of the number of examples needed to find a counterexample.
     for i in range(hypothesis_space):
-        (assignment,label) = create_single_sample(lm, binarizer, unmasker)
-        if label == 0 and evaluate(h,assignment,V) and assignment not in bad_nc:
+        (assignment,label) = create_single_sample(lm, binarizer, unmasker) # This create single sample will generate random samples. Is this why we need to keep track of the number of examples? For PAC?
+        # If the assignment is false but the hypothesis says its true.
+        if label == 0 and evaluate(h,assignment,V) and assignment not in bad_nc: # bad_nc is a list of bad negative counterexamples?
             return (assignment, i+1)
+        # If the assignment is true but the hypothesis says its false.
         if label == 1 and not evaluate(h,assignment,V):
             return (assignment, i+1)
     return True
@@ -143,7 +144,7 @@ def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothes
     ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, hypothesis_space, binarizer) 
 
     start = timeit.default_timer()
-    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, background = background, iterations=iterations, verbose = verbose)
+    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, binarizer, background = background, iterations=iterations, verbose = verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 
@@ -168,6 +169,7 @@ def make_disjoint(V):
 def create_background(lengths, V):
     """
     Create background knowledge as a set of disjoint variables for birth, continent, occupation, and gender.
+    The variables need to be disjoint since the groups are one-hot encoded.
 
     Parameters:
     lengths (dict): A dictionary containing the lengths of each attribute.

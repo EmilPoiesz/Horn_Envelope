@@ -117,7 +117,7 @@ class Binarizer:
         else:
             return np.nan
 
-    def sentence_from_binary(self, bin):
+    def sentence_from_binary(self, bin, has_gender=False):
         bin = np.array(bin)
         i_birth = len(self.age_containers)+1
         i_continent = i_birth + len(self.continent_lookup)
@@ -125,5 +125,9 @@ class Binarizer:
         continent = self.binary_to_string(splitted[1], kind = 'continent')
         occupation = self.binary_to_string(splitted[2], kind = 'occupation')
         birth = self.reverse_container(splitted[0])
-        sentence = "<mask> was born {birth} in {continent} and is a {occupation}."
-        return sentence.format(birth=birth, continent=continent, occupation=occupation)
+        if has_gender:
+            gender = 'She' if bin[-2] == 1 else 'He'
+            return f"{gender} was born {birth} in {continent} and is a {occupation}."
+        return f"<mask> was born {birth} in {continent} and is a {occupation}."
+
+
