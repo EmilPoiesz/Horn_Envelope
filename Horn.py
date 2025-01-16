@@ -6,9 +6,7 @@ import Binarizer
 
 def define_variables(number):
     """
-    Generate a list of symbolic variables.
-
-    This function creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
+    Creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
 
     Parameters:
     number (int): The number of symbolic variables to generate.
@@ -16,8 +14,7 @@ def define_variables(number):
     Returns:
     list: A list of symbolic variables.
     """
-    s = "".join(['v'+str(i)+',' for i in range(number)])
-    return list(symbols(s))
+    return list(symbols("".join(['v'+str(i)+',' for i in range(number)])))
 
 #TODO: This is not used?
 def generate_target(V, n_clauses,n_body_literals=-1):
@@ -51,18 +48,19 @@ def evaluate(formula, x, V):
 
 def from_set_to_theory(set):
     """
-    Converts a set of boolean values to a single boolean value using logical AND.
+    Converts a set of boolean clauses to a single boolean expression using logical AND.
 
     Args:
-        set (iterable): An iterable of boolean values.
+        set (iterable): An iterable of boolean clauses.
 
     Returns:
-        bool: The result of performing a logical AND operation on all elements in the set.
+        Expr: The result of performing a logical AND operation on all elements in the set.
     """
-    tempt = True
-    for e in set:
-        tempt = tempt & e
-    return tempt
+    # TODO: Can we use functools.reduce(lambda: ... ) like in get_hypothesis?
+    combined_clause = True
+    for clause in set:
+        combined_clause = combined_clause & clause
+    return combined_clause
 
 #TODO: This is not used?
 def entails(T,clause,V):
@@ -100,12 +98,19 @@ def MQ(assignment, V, target):
     t = from_set_to_theory(target)
     return evaluate(t,assignment,V)
 
-def get_hypothesis(S, V,bad_nc,background):
+def get_hypothesis(negative_counterexamples, V, excluded_negative_counterexamples, background):
     H = set()
-    for a in [a for a in S if a not in bad_nc]:
-        L = [V[index] for index,value in enumerate(a) if a[index] ==1 ] + [true]
-        R = [V[index] for index,value in enumerate(a) if a[index] ==0 ] + [false]
+    for assignment in [example for example in negative_counterexamples if example not in excluded_negative_counterexamples]:
+        # This seems like a weird mix of horn(e) and quasi(e)
+        # Each assignment is in negative counterexamples meaning that it seems like we are in line 14, creating H.
+        L = [V[index] for index,value in enumerate(assignment) if assignment[index] ==1 ] + [true]
+        R = [V[index] for index,value in enumerate(assignment) if assignment[index] ==0 ] + [false]
         for r in R:
+            # But here we take each true value and imply each false value in turn. 
+            # Same as conjunction of true -> disjunction of false?
+            # But this is the method for the quasi section which should be used on non-horn examples
+            # Are bad_nc/excluded_negative_counterexamples the same as non-horn?
+            # This is a bit confusing.
             clause = functools.reduce(lambda x,y: x & y, L)
             clause = (clause) >> r
             H.add(clause)
@@ -173,14 +178,15 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
 
     terminated = False
     metadata = []
-    average_samples = 0
-    eq_done = 0
-    HYPOTHESIS = set()
-    HYPOTHESIS = HYPOTHESIS.union(background)
+    #average_samples = 0
+    #eq_done = 0
+    current_hypothesis = set()
+    current_hypothesis = current_hypothesis.union(background)
+    
     # is S in this case negative counterexamples?
-    S = []
+    negative_counter_examples = []
     #remember positive counterexamples
-    Pos = []
+    positive_counter_examples = []
     #list of negative counterexamples that cannot produce a rule (according to positive counterexamples)
     #bad_nc =[]
     while True and iterations!=0:
@@ -190,7 +196,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         # Ask for a counterexample with respect to the current hypothesis
         # The counter example is using PAC learning. Asking for a set amount of samples, 
         # and if no sample is found to contradict the hypothesis, then the hypothesis is considered correct.
-        counter_example = ask_equivalence_oracle(HYPOTHESIS)
+        counter_example = ask_equivalence_oracle(current_hypothesis)
 
         # If the result is True, then the hypothesis is correct
         if type(counter_example) == bool and counter_example:
@@ -208,7 +214,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         
         # If x is positive counterexample
         # Which means that the counterexample should be true but the hypothesis says it is false.
-        for clause in HYPOTHESIS.copy():
+        for clause in current_hypothesis.copy():
             # Find the clause in H that the counter example breaks
             if (evaluate(clause, counter_example_assignment,V) == False):
                 # If the clause is a background restriction clause then the counter example is a bad example.
@@ -221,11 +227,10 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
                 # then the hypothesis is reconstructed with all the positive counter examples gathered so far.
                 # Why do we simply remove the clause from the hypothesis here?
                 else:
-                    HYPOTHESIS.remove(clause)
+                    current_hypothesis.remove(clause)
                     # Add the counter example to positive counter examples
-                    # This counter example is added multiple times. Once for every clause in the
-                    # hypothesis that it breaks. Isn't this redundant?
-                    Pos.append(counter_example_assignment)
+                    if counter_example_assignment not in positive_counter_examples:
+                        positive_counter_examples.append(counter_example_assignment)
 
                     # TODO: This is a bit confusing. What is the purpose of this?
                     # Doesn't nc mean negative counterexample? This is in the positive counterexample loop.
@@ -234,7 +239,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
                     #check if a nc in S does not falsify a clause in H
                     # This updates the bad_nc list but we cannot see this from the code. 
                     # Possible refactor?
-                    identify_problematic_nc(HYPOTHESIS,S,bad_nc,V)
+                    identify_problematic_nc(current_hypothesis,negative_counter_examples,bad_nc,V)
                     
                     # Flag that the counter example is a positive counter example
                     pos_ex = True
@@ -243,7 +248,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
             # If x is negative counterexample
             # This means that the counter example is false but the hypothesis says it is true so we should change the hypothesis.
             replaced = False
-            for s in S:
+            for s in negative_counter_examples:
                 # Here we are looking for intersections of assignments between the negative counterexample and previous samples in S.
                 s_intersection_x = [1 if s[index] ==1 and counter_example_assignment[index] == 1 else 0 for index in range(len(V))]
                 # A contains everywhere there is intersection between the sample s and the counter example.
@@ -253,12 +258,12 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
                 if A.issubset(B) and not B.issubset(A): # A properly contained in B
                     # We refine a negative counterexample.
                     # This is the first such instance where a negative counter example is properly explained by a smaller counterexample. Line 7 in the original algorithm.
-                    idx = S.index(s)
+                    idx = negative_counter_examples.index(s)
                     # We ask MQ if response is no. Line 6 in the algorithm.
                     if ask_membership_oracle(s_intersection_x) == False and s_intersection_x not in bad_nc:
                         # Did we already find it? We cannot control what counterexamples the LLM will give us.
                         # this simply does a print that the intersection is already in S. It does not do anything else.
-                        checkduplicates(s_intersection_x,S,guard)
+                        checkduplicates(s_intersection_x,negative_counter_examples,guard)
                         
                         # The name of this method is confusing. Is it is_go_into_be_duplicate?
                         # is_going_to_be_duplicate? (missing g)
@@ -266,29 +271,29 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
 
                         # Potential issues: You are modifying the bad_nc list in a if check. 
                         # This is not clear from the code. TODO: potential refactor.
-                        if not isgointobeduplicate(S,s_intersection_x,bad_nc):
-                            S[idx] = s_intersection_x
+                        if not isgointobeduplicate(negative_counter_examples,s_intersection_x,bad_nc):
+                            negative_counter_examples[idx] = s_intersection_x
                             replaced = True
                         break
             if not replaced:
                 # We weren't able to refine a already present negative counter example.
                 # Again the checkduplicates method is called. The method still doesnt do anything other than raise an exception.
-                checkduplicates(counter_example_assignment,S,guard)
+                checkduplicates(counter_example_assignment,negative_counter_examples,guard)
                 # What gets added to S here?
-                S.append(counter_example_assignment)
+                negative_counter_examples.append(counter_example_assignment)
 
             # Reconstruct the hypothesis. Line 14 in the algorithm.
-            HYPOTHESIS = get_hypothesis(S,V,bad_nc,background)
+            current_hypothesis = get_hypothesis(negative_counter_examples,V,bad_nc,background)
             #small optimisation. Refine hypo. with known positive counterexamples.
-            HYPOTHESIS = positive_check_and_prune(HYPOTHESIS,S,Pos,V,bad_nc)
+            current_hypothesis = positive_check_and_prune(current_hypothesis,negative_counter_examples,positive_counter_examples,V,bad_nc)
         
         if verbose ==2:
             signed_counterexample = '+' if pos_ex else '-'
             print(f'\nIteration: {abs(iterations)}\n\n' + 
                   f'Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counter_example_assignment, has_gender=True)} \n\n'+
-                  f'New Hypothesis: {sorted([str(h) for h in HYPOTHESIS if h not in background])}\n\n' +
-                  f'New Hypothesis length: {len(HYPOTHESIS)-len(background)} + background: {len(background)}\n\n' +
-                  f'Samples: {S}\n' +
+                  f'New Hypothesis: {sorted([str(h) for h in current_hypothesis if h not in background])}\n\n' +
+                  f'New Hypothesis length: {len(current_hypothesis)-len(background)} + background: {len(background)}\n\n' +
+                  f'Samples: {negative_counter_examples}\n' +
                   f'bad_nc:  {bad_nc}\n' +
                   f'bad_pc:  {bad_pc}\n\n\n\n')
         elif verbose == 1:
@@ -299,10 +304,10 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         data['runtime'] = stop-start
         metadata.append(data)
         if iterations % 5 == 0:
-            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(HYPOTHESIS), rt = data['runtime'])
+            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(current_hypothesis), rt = data['runtime'])
             with open('output.txt', 'a') as f:
                 f.write(sentence)
-    return (terminated, metadata, HYPOTHESIS)
+    return (terminated, metadata, current_hypothesis)
 
 #this is the target
 # T = {((V[0] & V[1]) >> V[2]), (V[0] & V[3]) >> False}

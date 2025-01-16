@@ -144,7 +144,8 @@ def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothes
     ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, hypothesis_space, binarizer) 
 
     start = timeit.default_timer()
-    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, binarizer, background = background, iterations=iterations, verbose = verbose)
+    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, binarizer, 
+                                    background = background, iterations=iterations, verbose = verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 
@@ -207,86 +208,6 @@ if __name__ == '__main__':
     delta = 0.1
 
     background = create_background(binarizer.lengths, V)
-    # background is hand-written, but could be automated as well
-    # Background knowledge is a set of Horn clauses that are known to be true in the target theory.
-    # In this case, it is known that only one of the variables in each group can be true at the same time.
-    # This doesnt work because I have different number of continents and occupations.
-    #background = {(~(V[0] & V[1])),
-    #(~(V[0] & V[2])),
-    #(~(V[0] & V[3])),
-    #(~(V[0] & V[4])),
-    #(~(V[1] & V[2])),
-    #(~(V[1] & V[3])),
-    #(~(V[1] & V[4])),
-    #(~(V[2] & V[3])),
-    #(~(V[2] & V[4])),
-    #(~(V[3] & V[4])), # Only one of V0 - V4, can only be born in one time
-    #(~(V[5] & V[6])),
-    #(~(V[5] & V[7])),
-    #(~(V[5] & V[8])),
-    #(~(V[5] & V[9])),
-    #(~(V[5] & V[10])),
-    #(~(V[5] & V[11])),
-    #(~(V[5] & V[12])),
-    #(~(V[5] & V[13])),
-    #(~(V[6] & V[7])),
-    #(~(V[6] & V[8])),
-    #(~(V[6] & V[9])),
-    #(~(V[6] & V[10])),
-    #(~(V[6] & V[11])),
-    #(~(V[6] & V[12])),
-    #(~(V[6] & V[13])),
-    #(~(V[7] & V[8])),
-    #(~(V[7] & V[9])),
-    #(~(V[7] & V[10])),
-    #(~(V[7] & V[11])),
-    #(~(V[7] & V[12])),
-    #(~(V[7] & V[13])),
-    #(~(V[8] & V[9])),
-    #(~(V[8] & V[10])),
-    #(~(V[8] & V[11])),
-    #(~(V[8] & V[12])),
-    #(~(V[8] & V[13])),
-    #(~(V[9] & V[10])),
-    #(~(V[9] & V[11])),
-    #(~(V[9] & V[12])),
-    #(~(V[9] & V[13])),
-    #(~(V[10] & V[11])),
-    #(~(V[10] & V[12])),
-    #(~(V[10] & V[13])),
-    #(~(V[11] & V[12])),
-    #(~(V[11] & V[13])),
-    #(~(V[12] & V[13])), # Only one of V5 - V13, can only be born in one continent
-    #(~(V[14] & V[15])),
-    #(~(V[14] & V[16])),
-    #(~(V[14] & V[17])),
-    #(~(V[14] & V[18])),
-    #(~(V[14] & V[19])),
-    #(~(V[14] & V[20])),
-    #(~(V[14] & V[21])),
-    #(~(V[15] & V[16])),
-    #(~(V[15] & V[17])),
-    #(~(V[15] & V[18])),
-    #(~(V[15] & V[19])),
-    #(~(V[15] & V[20])),
-    #(~(V[15] & V[21])),
-    #(~(V[16] & V[17])),
-    #(~(V[16] & V[18])),
-    #(~(V[16] & V[19])),
-    #(~(V[16] & V[20])),
-    #(~(V[16] & V[21])),
-    #(~(V[17] & V[18])),
-    #(~(V[17] & V[19])),
-    #(~(V[17] & V[20])),
-    #(~(V[17] & V[21])),
-    #(~(V[18] & V[19])),
-    #(~(V[18] & V[20])),
-    #(~(V[18] & V[21])),
-    #(~(V[19] & V[20])),
-    #(~(V[19] & V[21])),
-    #(~(V[20] & V[21])), # Only one of V14 - V21, can only have one occupation
-    #(~(V[22] & V[23])), # Only one of V22 and V23, can only be of one gender
-    #}
 
     #5000 as a placeholder for an uncapped run (it will terminate way before reaching this)
     iterations = 5000
