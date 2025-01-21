@@ -1,7 +1,4 @@
 import requests 
-from SPARQLWrapper import SPARQLWrapper, JSON
-import json
-import re
 import os
 import pandas as pd
 
@@ -35,24 +32,6 @@ def send_query(query):
     
     return result
 
-def load_known_countries():
-    """
-    Load the file containing known countries with their names, continents, and validity status.
-
-    If the file 'data/known_countries.csv' exists, it reads the data from the file.
-    Otherwise, it creates an empty DataFrame with columns 'nID', 'nationality', 'continent', and 'is_valid'.
-
-    Returns:
-        dict: A dictionary where the keys are 'nID' and the values are dictionaries containing
-              'nationality', 'continent', and 'is_valid' as keys.
-    """
-    if os.path.exists('data/known_countries.csv'):
-        known_countries_df = pd.read_csv('data/known_countries.csv')
-    else:
-        known_countries_df = pd.DataFrame(columns=['nID', 'nationality', 'continent', 'is_valid'])
-    known_countries = known_countries_df.set_index('nID').to_dict(orient='index')
-    return known_countries
-
 def clean_occupation_data(occupation_name, nIDs_valid):
     """
     Cleans the data for a single occupation by removing invalid nationality IDs and standardizing gender.
@@ -69,7 +48,10 @@ def clean_occupation_data(occupation_name, nIDs_valid):
     occupation_df = occupation_df[occupation_df['nationalityID'].isin(nIDs_valid)]
 
     # Standardize gender
-    occupation_df['gender'] = occupation_df['gender'].apply(standardize_gender)
+    gender = occupation_df['gender'].name
+    is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
+    is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
+    occupation_df['gender'] = 'female' if is_female else 'male' if is_male else 'other'
 
     # Drop duplicate rows
     occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
@@ -78,23 +60,6 @@ def clean_occupation_data(occupation_name, nIDs_valid):
 
     print(f'Cleaned up {occupation_name}: {total_pre_cleanup} -> {total_post_cleanup}')
     return occupation_df
-
-def standardize_gender(gender):
-    """
-    Standardizes various gender identifiers into three categories: 'female', 'male', or 'other'.
-
-    Args:
-        gender (str): The gender identifier to be standardized. This can include terms like 'female', 
-                      'transgender female', 'cisgender female', 'trans woman', 'male', 'transgender male', 
-                      'cisgender male', 'trans man', or any other gender identifier.
-
-        str: A standardized gender category, which will be 'female' for any female-related identifiers, 
-             'male' for any male-related identifiers, and 'other' for any identifiers that do not match 
-             the specified female or male terms.
-    """
-    is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
-    is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
-    return 'female' if is_female else 'male' if is_male else 'other'
 
 def safe_get(result, attribute):
     """
@@ -133,6 +98,7 @@ def parse_occupation_data(results):
     """
     occupation_data = []
     for result in results:
+
         if result['birth']['type'] == 'literal':
             date_of_birth = result['birth']['value'].split('-')
             birth = date_of_birth[0]
@@ -215,7 +181,8 @@ if __name__ == "__main__":
             continent_result = response.get('results', {}).get('bindings', [])
         if continent_result:
             continent = continent_result[0].get('continent', {}).get('value', '?')
-        if continent == '?': continue # If nation doesn't have a continent then skip 
+        if continent == '?': 
+            continue # If nation doesn't have a continent then skip 
 
         known_countries[nID] = {
             'nationality': nationality, 

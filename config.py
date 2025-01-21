@@ -9,17 +9,22 @@ SPARQL_QUERIES = {
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
         SELECT ?individual ?gender ?birth ?nationality ?nationalityID WHERE {{
-            ?personID wdt:P106 wd:{occupationID} ;
-                    wdt:P27 ?nationalityID ;
-                    wdt:P21 ?genderID ;
-                    wdt:P569 ?birth .
-            
-            ?nationalityID rdfs:label ?nationality filter (lang(?nationality) = "en") .
-            ?genderID rdfs:label ?gender filter (lang(?gender) = "en") .
-            ?personID rdfs:label ?individual filter (lang(?individual) = "en") 
+            ?id wdt:P106 wd:{occupationID} ;
+                wdt:P27 ?nationalityID ;
+                wdt:P21 ?gid ;
+                wdt:P569 ?birth .
+
+            OPTIONAL {{
+                ?nationalityID rdfs:label ?nationality filter (lang(?nationality) = "en") .
+            }}
+            OPTIONAL {{
+                ?id rdfs:label ?individual filter (lang(?individual) = "en") .
+            }}
+            OPTIONAL {{
+                ?gid rdfs:label ?gender filter (lang(?gender) = "en") .
+            }}
         }}
-        ORDER BY ?birth
-        LIMIT 100000""",
+        LIMIT 50000""",
     'verify_nationality_query': """
         PREFIX wikibase: <http://wikiba.se/ontology#>
         PREFIX wd: <http://www.wikidata.org/entity/>
