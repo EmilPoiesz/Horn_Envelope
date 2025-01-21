@@ -1,0 +1,413 @@
+nID,nationality,continent,is_valid
+Q215,Slovenia,Europe,True
+Q83286,Socialist Federal Republic of Yugoslavia,Europe,True
+Q29,Spain,Europe,True
+Q34266,Russian Empire,North America,True
+Q83958,Macedonia,Europe,True
+Q1747689,Ancient Rome,Afro-Eurasia,True
+Q179876,Kingdom of England,Europe,True
+Q28,Hungary,Europe,True
+Q174306,Republic of Genoa,Europe,True
+Q45670,Kingdom of Portugal,Europe,True
+Q142,France,Europe,True
+Q70972,Kingdom of France,Europe,True
+Q77,Uruguay,South America,True
+Q733,Paraguay,South America,True
+Q161885,Kingdom of Great Britain,Europe,True
+Q174193,United Kingdom of Great Britain and Ireland,Europe,True
+Q30,United States,North America,True
+Q736,Ecuador,South America,True
+Q27,Ireland,Europe,True
+Q27306,Kingdom of Prussia,Europe,True
+Q25,Wales,Europe,True
+Q664,New Zealand,Insular Oceania,True
+Q16,Canada,North America,True
+Q183,Germany,Europe,True
+Q96,Mexico,North America,True
+Q159,Russia,Europe,True
+Q155,Brazil,South America,True
+Q172579,Kingdom of Italy,Europe,True
+Q34,Sweden,Europe,True
+Q29999,Kingdom of the Netherlands,Europe,True
+Q31,Belgium,Europe,True
+Q756617,Kingdom of Denmark,Europe,True
+Q153015,Kingdom of Saxony,Europe,True
+Q39,Switzerland,Europe,True
+Q62633,Grand Principality of Finland,Europe,True
+Q800,Costa Rica,North America,True
+Q131964,Austrian Empire,Europe,True
+Q533534,Cisleithania,Europe,True
+Q57695350,Ireland,Europe,True
+Q750,Bolivia,South America,True
+Q145,United Kingdom,Europe,True
+Q408,Australia,Oceania,True
+Q20,Norway,Europe,True
+Q419,Peru,South America,True
+Q20135,Grand Duchy of Hesse,Europe,True
+Q36,Poland,Europe,True
+Q1206012,German Reich,Europe,True
+Q298,Chile,South America,True
+Q219,Bulgaria,Europe,True
+Q12560,Ottoman Empire,Europe,True
+Q17,Japan,Asia,True
+Q15180,Soviet Union,Asia,True
+Q139670,First Republic of Armenia,Asia,True
+Q258,South Africa,Africa,True
+Q403,Serbia,Europe,True
+Q205662,Tokugawa shogunate,Asia,True
+Q188712,Empire of Japan,Asia,True
+Q241,Cuba,North America,True
+Q33,Finland,Europe,True
+Q2003,Newfoundland and Labrador,North America,True
+Q191,Estonia,Europe,True
+Q218,Romania,Europe,True
+Q22,Scotland,Europe,True
+Q37,Lithuania,Europe,True
+Q43287,German Empire,Europe,False
+Q38,Italy,Europe,True
+Q41,Greece,Europe,True
+Q146328,Commonwealth of the Philippines,Asia,True
+Q29520,China,Asia,True
+Q191077,Kingdom of Yugoslavia,Europe,True
+Q32,Luxembourg,Europe,True
+Q40,Austria,Europe,True
+Q133356,Ukrainian Soviet Socialist Republic,Europe,True
+Q851,Saudi Arabia,Asia,True
+Q43,Turkey,Asia,True
+Q207272,Second Polish Republic,Europe,True
+Q45,Portugal,Europe,True
+Q801,Israel,Asia,True
+Q7318,Nazi Germany,Europe,True
+Q41304,Weimar Republic,Europe,True
+Q230,Georgia,Europe,True
+Q33946,Czechoslovakia,Europe,True
+Q28513,Austria-Hungary,Europe,True
+Q212,Ukraine,Europe,True
+Q414,Argentina,South America,True
+Q221457,Congress Poland,Europe,True
+Q457167,West Ukrainian People's Republic,Europe,True
+Q243610,Ukrainian People's Republic,Europe,True
+Q928,Philippines,Asia,True
+Q25395037,Kingdom of Hungary,Europe,True
+Q1723904,Kaw people,North America,True
+Q189,Iceland,Europe,True
+Q833,Malaysia,Asia,True
+Q804,Panama,North America,True
+Q16957,German Democratic Republic,Europe,True
+Q2305208,Russian Socialist Federative Soviet Republic,Eurasia,True
+Q21,England,Europe,True
+Q36704,Yugoslavia,Europe,True
+Q766,Jamaica,North America,True
+Q503585,Korea under Japanese rule,Asia,True
+Q244,Barbados,North America,True
+Q2184,Russian Soviet Federative Socialist Republic,Eurasia,True
+Q884,South Korea,Asia,True
+Q18097,Korea,Asia,True
+Q334,Singapore,Asia,True
+Q5785,Cayman Islands,North America,True
+Q871091,British Malaya,Asia,True
+Q184,Belarus,Europe,True
+Q216173,Free City of Danzig,Europe,True
+Q869,Thailand,Asia,True
+Q211,Latvia,Europe,True
+Q148,People's Republic of China,Asia,True
+Q209065,Kingdom of Greece,Europe,True
+Q46395,British overseas territories,Europe,True
+Q15102440,"Kingdom of Serbs, Croats and Slovenes",Europe,True
+Q739,Colombia,South America,True
+Q822,Lebanon,Asia,True
+Q858,Syria,Asia,True
+Q865,Taiwan,Asia,True
+Q1033,Nigeria,Africa,True
+Q8733,Qing dynasty,Asia,True
+Q1049,Sudan,Africa,True
+Q717,Venezuela,South America,True
+Q117,Ghana,Africa,True
+Q224,Croatia,Europe,True
+Q790,Haiti,North America,True
+Q912,Mali,Africa,True
+Q178038,Second Spanish Republic,Europe,True
+Q213,Czech Republic,Europe,True
+Q4250299,Autonomous Turkish Cypriot Administration,Europe,True
+Q15240466,British Cyprus,Europe,True
+Q754,Trinidad and Tobago,North America,True
+Q843,Pakistan,Asia,True
+Q129286,British Raj,Asia,True
+Q203493,Kingdom of Romania,Europe,True
+Q115,Ethiopia,Africa,True
+Q713750,West Germany,Europe,True
+Q214,Slovakia,Europe,True
+Q734,Guyana,South America,True
+Q252,Indonesia,Asia,True
+Q1028848,French Cameroons,Africa,True
+Q778,The Bahamas,North America,True
+Q1005,The Gambia,Africa,True
+Q1030,Namibia,Africa,True
+Q963,Botswana,Africa,True
+Q31747,Irish Free State,Europe,True
+Q1029,Mozambique,Africa,True
+Q114,Kenya,Africa,True
+Q2002279,Portuguese Guinea,Africa,True
+Q837,Nepal,Asia,True
+Q1009,Cameroon,Africa,True
+Q794,Iran,Asia,True
+Q924,Tanzania,Africa,True
+Q965,Burkina Faso,Africa,True
+Q18221,Turks and Caicos Islands,North America,True
+Q27001811,Bouaflé,Africa,True
+Q1036,Uganda,Africa,True
+Q702,Federated States of Micronesia,Insular Oceania,True
+Q219060,State of Palestine,Asia,True
+Q16410,Hungarian People's Republic,Europe,True
+Q1028,Morocco,Africa,True
+Q1007,Guinea-Bissau,Africa,True
+Q1020,Malawi,Africa,True
+Q1011,Cape Verde,Africa,True
+Q1041,Senegal,Africa,True
+Q668,India,Asia,True
+Q916,Angola,Africa,True
+Q1016,Libya,Africa,True
+Q201024,Mohegan,North America,True
+Q810,Jordan,Asia,True
+Q6500954,Zaire,Africa,True
+Q424,Cambodia,Asia,True
+Q8646,Hong Kong,Asia,True
+Q1008,Ivory Coast,Africa,True
+Q35672,Pitcairn Islands,Insular Oceania,True
+Q953,Zambia,Africa,True
+Q1044,Sierra Leone,Africa,True
+Q244165,Republic of Artsakh,Asia,True
+Q232,Kazakhstan,Asia,True
+Q974,Democratic Republic of the Congo,Africa,True
+Q221,North Macedonia,Europe,True
+Q948,Tunisia,Africa,True
+Q796,Iraq,Asia,True
+Q678,Tonga,Insular Oceania,True
+Q211274,Polish People's Republic,Europe,True
+Q836,Myanmar,Asia,True
+Q784,Dominica,North America,True
+Q227,Azerbaijan,Asia,True
+Q730,Suriname,South America,True
+Q1006,Guinea,Africa,True
+Q110985411,Dasong,Asia,False
+Q12548,Holy Roman Empire,Europe,True
+Q172107,Polish–Lithuanian Commonwealth,Europe,True
+Q154849,Grand Duchy of Tuscany,Europe,True
+Q81931,Confederate States of America,North America,True
+Q370736,Cape Colony,Africa,True
+Q245160,Democratic Republic of Georgia,Eurasia,True
+Q330756,Transcaucasian Democratic Federative Republic,Asia,True
+Q2415901,Allied-occupied Germany,Europe,True
+Q1290149,Federal People's Republic of Yugoslavia,Europe,True
+Q391980,Free Territory of Trieste,Europe,True
+Q11768,Ancient Egypt,Africa,True
+Q4461035,Akkadian Empire,Asia,True
+Q191324,Middle Kingdom of Egypt,Africa,True
+Q79,Egypt,Africa,True
+Q3185305,Kingdom of Israel,Asia,True
+Q41642,Phoenicia,Asia,True
+Q217667,Elis,Europe,True
+Q48685,Judah/Judaea,Asia,True
+Q47690,Babylonia,Asia,True
+Q389688,Achaemenid Empire,Europe,True
+Q844930,Classical Athens,Europe,True
+Q846025,Mahajanapada,Asia,True
+Q93180,Seleucid Empire,Asia,True
+Q2320005,Ptolemaic Kingdom,Africa,True
+Q10359001,Hasmonean Kingdom,Asia,True
+Q11913408,Celtiberia,Europe,True
+Q173082,Dacia,Europe,True
+Q16000109,Herodian Kingdom of Judea,Asia,True
+Q210718,Asia,Asia,True
+Q233,Malta,Europe,True
+Q186513,Hispania,Europe,True
+Q879466,Roman Gaul,Afro-Eurasia,True
+Q1249412,Galatia,Afro-Eurasia,True
+Q83891,Sasanian Empire,Africa,True
+Q12544,Byzantine Empire,Africa,True
+Q399,Armenia,Asia,True
+Q42834,Western Roman Empire,Europe,True
+Q83311,Persian Empire,Asia,True
+Q146246,Francia,Europe,True
+Q583038,Ostrogothic Kingdom,Europe,True
+Q327,Brittany,Europe,True
+Q10416611,Vandal Kingdom,Antarctica,True
+Q229,Cyprus,Europe,True
+Q816814,Kingdom of Gwynedd,Europe,True
+Q530670,Kingdom of Burgundy,Europe,True
+Q12490507,Rashidun Caliphate,Africa,True
+Q2940142,Kingdom of Toledo,Europe,True
+Q16934171,Tegeingl,Europe,True
+Q9683,Tang dynasty,Asia,True
+Q105313,Kingdom of Wessex,Europe,True
+Q538626,Insular Brittany,Europe,False
+Q854415,Kingdom of the Lombards,Europe,True
+Q107299,Kingdom of Northumbria,Europe,True
+Q3965868,Visigothic Spain,Europe,True
+Q231392,Kingdom of Asturias,Europe,True
+Q31929,Carolingian Empire,Europe,True
+Q164092,Duchy of Saxony,Europe,True
+Q1051600,Duchy of Naples,Africa,True
+Q5311389,Duchy of Thuringia,Europe,True
+Q46370,West Francia,Europe,True
+Q1233672,County of Barcelona,Europe,True
+Q193152,Great Moravia,Europe,True
+Q1337854,emirate of Córdoba,Europe,True
+Q6673921,Lotharingia,Europe,True
+Q838931,Kingdom of Italy,Europe,True
+Q203817,First Bulgarian Empire,Europe,True
+Q652275,County of Cerdanya,Europe,True
+Q1235737,County of Aragon,Europe,True
+Q303421,Kingdom of Galicia,Europe,True
+Q1108445,Kievan Rus',Europe,True
+Q842091,Duchy of Normandy,Europe,True
+Q4948,Republic of Venice,Europe,True
+Q4304392,Russian State,Asia,True
+Q170174,Papal States,Europe,True
+Q154667,Kingdom of Georgia,Europe,True
+Q55502,Kingdom of Jerusalem,Asia,True
+Q1311990,Grand Principality of Serbia,Europe,True
+Q2415003,Kingdom of Serbia,Europe,True
+Q200262,Kingdom of Navarre,Europe,True
+Q204920,Crown of Aragon,Europe,True
+Q15581,Principality of Catalonia,Europe,True
+Q83546,Grand Principality of Vladimir,Europe,True
+Q217196,Crown of Castile,Africa,True
+Q170770,Grand Principality of Moscow,Europe,True
+Q49683,Grand Duchy of Lithuania,Europe,True
+Q420759,Second Bulgarian Empire,Europe,True
+Q42585,Kingdom of Bohemia,Europe,True
+Q1649871,Kingdom of Poland,Europe,True
+Q199442,Kingdom of Aragon,Europe,True
+Q55,Netherlands,Europe,True
+Q222,Albania,Europe,True
+Q762943,County of Holland,Europe,True
+Q178913,Empire of Trebizond,Asia,True
+Q736727,Republic of Siena,Europe,True
+Q1154406,Ashikaga shogunate,Asia,True
+Q142417,Kingdom of Valencia,Europe,True
+Q649202,Duchy of Urbino,Europe,True
+Q230791,Kingdom of Scotland,Europe,True
+Q186096,Tsardom of Russia,Eurasia,True
+Q435583,Old Swiss Confederacy,Europe,True
+Q330533,Seventeen Provinces,Europe,True
+Q188586,Kingdom of Sicily,Europe,True
+Q157109,Burgundian Netherlands,Europe,True
+Q686971,Lands of the Bohemian Crown,Europe,True
+Q171150,Kingdom of Hungary,Europe,True
+Q158835,Prince-Bishopric of Liège,Europe,True
+Q6581823,Southern Netherlands,Europe,False
+Q1031430,Habsburg Netherlands,Europe,False
+Q173065,Kingdom of Naples,Europe,True
+Q157070,County of Flanders,Europe,True
+Q170072,Dutch Republic,Europe,True
+Q3279296,Sweden-Finland,Europe,True
+Q1947581,New Castile,Europe,True
+Q10957559,Principality of Moldavia,Europe,True
+Q215530,Kingdom of Ireland,Europe,True
+Q217,Moldova,Europe,True
+Q157013,Hohenzollern-Sigmaringen,Europe,True
+Q153136,Habsburg monarchy,Europe,True
+Q622783,Spanish Netherlands,Europe,True
+Q696640,Duchy of Pomerania,Europe,True
+Q208169,Republic of Ragusa,Europe,True
+Q1923401,Dzungar Khanate,Eurasia,True
+Q212439,Cossack Hetmanate,Europe,True
+Q170603,New Spain,Central America,True
+Q62651,Denmark–Norway,Europe,True
+Q200464,Portuguese Empire,Africa,True
+Q23366230,Republic of Geneva,Europe,True
+Q389004,Wallachia,Europe,True
+Q836676,Kingdom of Majorca,Europe,True
+Q722071,Ashanti Empire,Africa,True
+Q660776,canton of Basel,Europe,True
+Q2088324,Colonial Brazil,South America,True
+Q157367,Brandenburg-Prussia,Europe,True
+Q236,Montenegro,Europe,True
+Q1209822,Kingdom of Kakheti,Europe,True
+Q153529,Duchy of Milan,Europe,True
+Q700283,Austrian Netherlands,Europe,True
+Q210551,Viceroyalty of the Río de la Plata,Africa,True
+Q3399982,Kingdom of Spain,Europe,True
+Q2396442,Kingdom of Galicia and Lodomeria,Europe,True
+Q2577303,Kingdom of Sardinia,Europe,True
+Q671899,Duchy of Teschen,Europe,True
+Q3324486,Prince-Bishopric of Montenegro,Europe,True
+Q80702,Spanish Empire,Africa,True
+Q1078602,Kingdom of Nepal,Asia,True
+Q2670751,Margraviate of Moravia,Europe,True
+Q256961,Electorate of Bavaria,Europe,True
+Q188553,Batavian Republic,Europe,True
+Q693669,Grand Duchy of Oldenburg,Europe,True
+Q426025,Duchy of Savoy,Europe,True
+Q1063498,United States of the Ionian Islands,Europe,True
+Q156418,Kingdom of Hawaiʻi,Australian continent,True
+Q217230,Empire of Brazil,South America,True
+Q792,El Salvador,North America,True
+Q783,Honduras,North America,True
+Q154195,Kingdom of Bavaria,Europe,True
+Q62589,Union between Sweden and Norway,Europe,True
+Q13496558,Prince-Bishopric of Brixen,Europe,True
+Q3113481,Principality of Transylvania,Europe,True
+Q180393,Kingdom of the Two Sicilies,Europe,True
+Q209857,Kingdom of Lombardy–Venetia,Europe,True
+Q811,Nicaragua,North America,True
+Q241748,Kingdom of Serbia,Europe,True
+Q206696,Helvetic Republic,Europe,True
+Q223936,Kingdom of Italy,Europe,True
+Q151624,German Confederation,Europe,True
+Q836680,Duchy of Nassau,Europe,True
+Q1155700,Rattanakosin Kingdom,Asia,True
+Q159631,Kingdom of Württemberg,Europe,True
+Q1121436,Province of Canada,North America,True
+Q1134180,Lower Canada,North America,True
+Q26167,Duchy of Schleswig,Europe,True
+Q225,Bosnia and Herzegovina,Europe,True
+Q5148518,Colony of New Zealand,Oceania,True
+Q849623,Oyo Empire,Africa,True
+Q854,Sri Lanka,Asia,True
+Q533558,Kingdom of Croatia-Slavonia,Europe,True
+Q186320,Grand Duchy of Baden,Europe,True
+Q2078820,Odesa Soviet Republic,Europe,True
+Q139319,Russian Republic,Europe,True
+Q786,Dominican Republic,North America,True
+Q152750,Protectorate of Bohemia and Moravia,Europe,True
+Q12163800,Ukrainian State,Europe,True
+Q881,Vietnam,Asia,True
+Q124943,Kingdom of Egypt,Africa,True
+Q370173,Sultanate of Egypt,Africa,True
+Q3087763,Republic of Egypt,Africa,True
+Q1775277,Dominion of India,Asia,True
+Q986,Eritrea,Africa,True
+Q842794,Socialist Republic of Romania,Europe,True
+Q2685298,Romanian People's Republic,Europe,True
+Q971,Republic of the Congo,Africa,True
+Q38872,Prussia,Europe,True
+Q1277557,Democratic Federal Yugoslavia,Europe,True
+Q265824,Second Hellenic Republic,Europe,True
+Q170468,United Arab Republic,Africa,True
+Q691,Papua New Guinea,Insular Oceania,True
+Q954,Zimbabwe,Africa,True
+Q217169,Rhodesia,Africa,True
+Q890120,Zimbabwe Rhodesia,Africa,True
+Q193714,Mandatory Palestine,Asia,True
+Q242,Belize,North America,True
+Q1643555,British Honduras,North America,True
+Q147909,Kingdom of Bulgaria,Europe,True
+Q121932,People's Republic of Bulgaria,Europe,True
+Q1000,Gabon,Africa,True
+Q1014,Liberia,Africa,True
+Q686,Vanuatu,Insular Oceania,True
+Q504238,Loja Province,South America,True
+Q13190167,Olmedo,South America,True
+Q1037,Rwanda,Africa,True
+Q237,Vatican City,Europe,True
+Q983,Equatorial Guinea,Africa,True
+Q685,Solomon Islands,Insular Oceania,True
+Q962,Benin,Africa,True
+Q1050,Eswatini,Africa,True
+Q1027,Mauritius,Africa,True
+Q907112,Transnistria,Europe,True
+Q812717,Baños,South America,True
+Q504252,Tungurahua Province,South America,True
+Q16150196,Donetsk People's Republic,Europe,True

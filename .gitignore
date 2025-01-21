@@ -137,6 +137,8 @@ figures/
 *json
 data_new/
 roberta-base_rules.txt
-data
 Old
 horn_env
+
+!data/occupations.csv
+!data/known_countries.csv
