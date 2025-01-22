@@ -32,6 +32,16 @@ def send_query(query):
     return result
 
 def send_query_birthday_split(occupation_id):
+    """
+    When the query gets too large we get TimedOutException. send_query_birthday_split 
+    splits the query to only ask for entries born before 1900, then query each decade up to 2000
+    and lastly query entries born after 2000. This way we avoid one large query.
+
+    Args:
+        occupation_id: The occupation we want to query for
+    returns:
+        list: The responses from each query combined in a list.
+    """
     # Query for entries born before 1900
     start_filter = f'?birth < "1900-01-01T00:00:00Z"^^xsd:dateTime'
     query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=start_filter)
@@ -51,41 +61,6 @@ def send_query_birthday_split(occupation_id):
     response = send_query(query)
     results.extend(response.get('results', {}).get('bindings', []))
     return results
-
-def clean_occupation_data(occupation_name, nIDs_valid):
-    """
-    Cleans the data for a single occupation by removing invalid nationality IDs and standardizing gender.
-    Args:
-        occupation_name (str): The name of the occupation corresponding to the CSV filename in 'data/csv/'.
-        nIDs_valid (set): Set of valid nationality IDs to be used for filtering entries.
-    Returns:
-        pd.DataFrame: The cleaned DataFrame for the occupation.
-    """
-    occupation_df = pd.read_csv(f'data/extracted_occupations/{occupation_name}.csv')
-    total_pre_cleanup = len(occupation_df)
-
-    # Filter out rows with invalid nationality IDs
-    occupation_df = occupation_df[occupation_df['nationalityID'].isin(nIDs_valid)]
-
-    # Standardize gender
-    occupation_df['gender'] = occupation_df['gender'].apply(standardize_gender)
-
-    # Drop entries with no name
-    occupation_df = occupation_df[occupation_df['name'] != '?']
-
-    # Drop duplicate rows
-    occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
-    occupation_df = occupation_df.drop_duplicates(keep='first')
-    total_post_cleanup = len(occupation_df)
-
-    print(f'Cleaned up {occupation_name}: {total_pre_cleanup} -> {total_post_cleanup}')
-    return occupation_df
-
-def standardize_gender(value):
-    if value in ['female', 'transgender female', 'cisgender female', 'trans woman']: return 'female'
-    if value in ['male', 'transgender male', 'cisgender male', 'trans man']: return 'male'
-    return 'other'
-
 
 def safe_get(results, attribute):
     """
@@ -141,6 +116,40 @@ def parse_occupation_data(results):
             })
         
     return occupation_data
+
+def standardize_gender(value):
+    if value in ['female', 'transgender female', 'cisgender female', 'trans woman']: return 'female'
+    if value in ['male', 'transgender male', 'cisgender male', 'trans man']: return 'male'
+    return 'other'
+
+def clean_occupation_data(occupation_name, nIDs_valid):
+    """
+    Cleans the data for a single occupation by removing invalid nationality IDs and standardizing gender.
+    Args:
+        occupation_name (str): The name of the occupation corresponding to the CSV filename in 'data/csv/'.
+        nIDs_valid (set): Set of valid nationality IDs to be used for filtering entries.
+    Returns:
+        pd.DataFrame: The cleaned DataFrame for the occupation.
+    """
+    occupation_df = pd.read_csv(f'data/extracted_occupations/{occupation_name}.csv')
+    total_pre_cleanup = len(occupation_df)
+
+    # Filter out rows with invalid nationality IDs
+    occupation_df = occupation_df[occupation_df['nationalityID'].isin(nIDs_valid)]
+
+    # Standardize gender
+    occupation_df['gender'] = occupation_df['gender'].apply(standardize_gender)
+
+    # Drop entries with no name
+    occupation_df = occupation_df[occupation_df['name'] != '?']
+
+    # Drop duplicate rows
+    occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
+    occupation_df = occupation_df.drop_duplicates(keep='first')
+    total_post_cleanup = len(occupation_df)
+
+    print(f'Cleaned up {occupation_name}: {total_pre_cleanup} -> {total_post_cleanup}')
+    return occupation_df
 
 if __name__ == "__main__":
 
