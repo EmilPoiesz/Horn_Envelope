@@ -2,7 +2,7 @@ import requests
 import os
 import pandas as pd
 
-from config import SPARQL_QUERIES, URL, HEADERS, AGE_CONTAINERS
+from config import SPARQL_QUERIES, URL, HEADERS
 
 
 def send_query(query):
@@ -22,12 +22,12 @@ def send_query(query):
         response = requests.get(URL, params={'query': query, 'format': 'json'}, headers=HEADERS)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        print(f"\nNetwork error occurred\n")
+        print(f"\nNetwork error occurred")
         return {}
     try: 
         result = response.json()
     except requests.JSONDecodeError as e:
-        print(f"\nCould not parse JSON error\n")
+        print(f"\nCould not parse JSON error")
         return {}
     return result
 
@@ -38,15 +38,15 @@ def send_query_birthday_split(occupation_id):
     response = send_query(query)
     results = response.get('results', {}).get('bindings', [])
 
-    for i in range(9):
+    for i in range(10):
         # Query for entries born in each decade
-        middle_filter = f'?birth >= "{1900+10*i}-01-01T00:00:00Z"^^xsd:dateTime && ?birth < "{1900+10*i+1}-01-01T00:00:00Z"^^xsd:dateTime'
+        middle_filter = f'?birth >= "{1900+(10*i)}-01-01T00:00:00Z"^^xsd:dateTime && ?birth < "{1900+(10*(i+1))}-01-01T00:00:00Z"^^xsd:dateTime'
         query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=middle_filter)
         response = send_query(query)
         results.extend(response.get('results', {}).get('bindings', []))
     
-    # Query for entries for after Y
-    end_filter =f'?birth >= "1990-01-01T00:00:00Z"^^xsd:dateTime'
+    # Query for entries born after 2000
+    end_filter =f'?birth >= "2000-01-01T00:00:00Z"^^xsd:dateTime'
     query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=end_filter)
     response = send_query(query)
     results.extend(response.get('results', {}).get('bindings', []))
@@ -70,6 +70,9 @@ def clean_occupation_data(occupation_name, nIDs_valid):
     # Standardize gender
     occupation_df['gender'] = occupation_df['gender'].apply(standardize_gender)
 
+    # Drop entries with no name
+    occupation_df = occupation_df[occupation_df['name'] != '?']
+
     # Drop duplicate rows
     occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
     occupation_df = occupation_df.drop_duplicates(keep='first')
@@ -79,28 +82,27 @@ def clean_occupation_data(occupation_name, nIDs_valid):
     return occupation_df
 
 def standardize_gender(value):
-    if value in ['female', 'transgender female', 'cisgender female', 'trans woman']:
-        return 'female'
-    elif value in ['male', 'transgender male', 'cisgender male', 'trans man']:
-        return 'male'
+    if value in ['female', 'transgender female', 'cisgender female', 'trans woman']: return 'female'
+    if value in ['male', 'transgender male', 'cisgender male', 'trans man']: return 'male'
     return 'other'
 
-def safe_get(result, attribute):
+
+def safe_get(results, attribute):
     """
     Retrieve the value of a specified attribute from a result dictionary.
 
     This function checks if the given attribute exists in the result dictionary.
-    If the attribute exists, it returns the associated value. If the attribute
-    does not exist, it returns a default value of '?'.
+    If the attribute exists it returns the associated value, otherwise it 
+    returns a default value of '?'.
 
     Args:
-        result (dict): The dictionary from which to retrieve the attribute value.
+        results (dict): The dictionary from which to retrieve the attribute value.
         attribute (str): The key of the attribute to retrieve from the result dictionary.
 
     Returns:
         The value associated with the attribute if it exists, otherwise '?'.
     """
-    return result[attribute]['value'] if attribute in result else '?'
+    return results[attribute]['value'] if attribute in results else '?'
 
 def parse_occupation_data(results):
     """
@@ -159,7 +161,7 @@ if __name__ == "__main__":
         response = send_query(query)
         results = response.get('results', {}).get('bindings', [])
         if len(results) == 0: 
-            print("Retry query split by birthyear.")
+            print("Retry query split by birthyear.\n")
             result = send_query_birthday_split(occupation_id)
         if len(results) == 0: print("We found no results."); continue
 
