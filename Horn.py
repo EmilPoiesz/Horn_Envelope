@@ -193,6 +193,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         data = {}
         start = timeit.default_timer()
         
+        clauses_removed = []
         # Ask for a counterexample with respect to the current hypothesis
         # The counter example is using PAC learning. Asking for a set amount of samples, 
         # and if no sample is found to contradict the hypothesis, then the hypothesis is considered correct.
@@ -228,6 +229,7 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
                 # Why do we simply remove the clause from the hypothesis here?
                 else:
                     current_hypothesis.remove(clause)
+                    clauses_removed.append(clause)
                     # Add the counter example to positive counter examples
                     if counter_example_assignment not in positive_counter_examples:
                         positive_counter_examples.append(counter_example_assignment)
@@ -290,10 +292,10 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         if verbose ==2:
             signed_counterexample = '+' if pos_ex else '-'
             print(f'\nIteration: {abs(iterations)}\n\n' + 
-                  f'Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counter_example_assignment, has_gender=True)} \n\n'+
+                  f'({sample_number}) Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counter_example_assignment, has_gender=True)}\n\n'+
+                  f'Clauses removed by counterexample: {clauses_removed} \n\n'
                   f'New Hypothesis: {sorted([str(h) for h in current_hypothesis if h not in background])}\n\n' +
                   f'New Hypothesis length: {len(current_hypothesis)-len(background)} + background: {len(background)}\n\n' +
-                  f'Samples: {negative_counter_examples}\n' +
                   f'bad_nc:  {bad_nc}\n' +
                   f'bad_pc:  {bad_pc}\n\n\n\n')
         elif verbose == 1:

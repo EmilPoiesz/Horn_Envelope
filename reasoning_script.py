@@ -5,7 +5,7 @@ from Horn import *
 from Binarizer import *
 from transformers import pipeline
 from helper_functions import *
-from scipy.special import comb
+#from scipy.special import comb
 import pickle
 import json
 from config import EPSILON, DELTA
@@ -27,14 +27,11 @@ def get_hypothesis_space(lengths):
              accuracy and confidence.
     """
     
-    total_hypotheses = 1
+    total_clauses = 1
     for length in lengths.values():
-        total_hypotheses *= length
+        total_clauses *= length
 
-    # Why is this the number of possible examples?
-    # H = 1080 # number of possible examples
-
-    return int ( (1/EPSILON) * log( (Pow(2,total_hypotheses) / DELTA), 2)) #pow(x,2) gives total hypothesis space, total hypothesis= total clauses?
+    return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2)) #pow(2, total_clauses) gives total hypothesis space
 
 def get_random_sample(length, allow_zero = True, amount_of_true=1):
     vec = np.zeros(length, dtype=np.int8)
@@ -145,7 +142,7 @@ def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothes
 
     start = timeit.default_timer()
     terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, binarizer, 
-                                    background = background, iterations=iterations, verbose = verbose)
+                                    background=background, iterations=iterations, verbose = verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 
