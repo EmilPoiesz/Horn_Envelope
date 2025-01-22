@@ -23,8 +23,31 @@ SPARQL_QUERIES = {
             OPTIONAL {{
                 ?gid rdfs:label ?gender filter (lang(?gender) = "en") .
             }}
+        }}""",
+    'occupation_query_birthdate_split':"""
+        PREFIX wikibase: <http://wikiba.se/ontology#>
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        SELECT ?individual ?gender ?birth ?nationality ?nationalityID WHERE {{
+            ?id wdt:P106 wd:{occupationID} ;
+                wdt:P27 ?nationalityID ;
+                wdt:P21 ?gid ;
+                wdt:P569 ?birth .
+            
+            FILTER({birth_filter})
+            
+            OPTIONAL {{
+                ?nationalityID rdfs:label ?nationality filter (lang(?nationality) = "en") .
+            }}
+            OPTIONAL {{
+                ?id rdfs:label ?individual filter (lang(?individual) = "en") .
+            }}
+            OPTIONAL {{
+                ?gid rdfs:label ?gender filter (lang(?gender) = "en") .
+            }}
         }}
-        LIMIT 50000""",
+        """,
     'verify_nationality_query': """
         PREFIX wikibase: <http://wikiba.se/ontology#>
         PREFIX wd: <http://www.wikidata.org/entity/>

@@ -2,7 +2,7 @@ import requests
 import os
 import pandas as pd
 
-from config import SPARQL_QUERIES, URL, HEADERS
+from config import SPARQL_QUERIES, URL, HEADERS, AGE_CONTAINERS
 
 
 def send_query(query):
@@ -22,15 +22,35 @@ def send_query(query):
         response = requests.get(URL, params={'query': query, 'format': 'json'}, headers=HEADERS)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        print(f"\nNetwork error occurred: {e}\n")
+        print(f"\nNetwork error occurred\n")
         return {}
     try: 
         result = response.json()
     except requests.JSONDecodeError as e:
-        print(f"\nCould not parse JSON error: {e}\n")
+        print(f"\nCould not parse JSON error\n")
         return {}
-    
     return result
+
+def send_query_birthday_split(occupation_id):
+    # Query for entries born before 1900
+    start_filter = f'?birth < "1900-01-01T00:00:00Z"^^xsd:dateTime'
+    query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=start_filter)
+    response = send_query(query)
+    results = response.get('results', {}).get('bindings', [])
+
+    for i in range(9):
+        # Query for entries born in each decade
+        middle_filter = f'?birth >= "{1900+10*i}-01-01T00:00:00Z"^^xsd:dateTime && ?birth < "{1900+10*i+1}-01-01T00:00:00Z"^^xsd:dateTime'
+        query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=middle_filter)
+        response = send_query(query)
+        results.extend(response.get('results', {}).get('bindings', []))
+    
+    # Query for entries for after Y
+    end_filter =f'?birth >= "1990-01-01T00:00:00Z"^^xsd:dateTime'
+    query = SPARQL_QUERIES["occupation_query_birthdate_split"].format(occupationID=occupation_id, birth_filter=end_filter)
+    response = send_query(query)
+    results.extend(response.get('results', {}).get('bindings', []))
+    return results
 
 def clean_occupation_data(occupation_name, nIDs_valid):
     """
@@ -48,10 +68,7 @@ def clean_occupation_data(occupation_name, nIDs_valid):
     occupation_df = occupation_df[occupation_df['nationalityID'].isin(nIDs_valid)]
 
     # Standardize gender
-    gender = occupation_df['gender'].name
-    is_female = gender == 'female' or gender == 'transgender female' or gender == 'cisgender female' or gender == 'trans woman'
-    is_male   = gender == 'male'   or gender == 'transgender male'   or gender == 'cisgender male'   or gender == 'trans man'
-    occupation_df['gender'] = 'female' if is_female else 'male' if is_male else 'other'
+    occupation_df['gender'] = occupation_df['gender'].apply(standardize_gender)
 
     # Drop duplicate rows
     occupation_df = occupation_df.drop_duplicates(subset='name', keep='first')
@@ -60,6 +77,13 @@ def clean_occupation_data(occupation_name, nIDs_valid):
 
     print(f'Cleaned up {occupation_name}: {total_pre_cleanup} -> {total_post_cleanup}')
     return occupation_df
+
+def standardize_gender(value):
+    if value in ['female', 'transgender female', 'cisgender female', 'trans woman']:
+        return 'female'
+    elif value in ['male', 'transgender male', 'cisgender male', 'trans man']:
+        return 'male'
+    return 'other'
 
 def safe_get(result, attribute):
     """
@@ -134,8 +158,11 @@ if __name__ == "__main__":
         query = SPARQL_QUERIES['occupation_query'].format(occupationID=occupation_id)
         response = send_query(query)
         results = response.get('results', {}).get('bindings', [])
-        if len(results) == 0: print("We encountered an error and found no results."); continue
-        
+        if len(results) == 0: 
+            print("Retry query split by birthyear.")
+            result = send_query_birthday_split(occupation_id)
+        if len(results) == 0: print("We found no results."); continue
+
         new_occupations_extracted.append(occupation)
         occupation_data = parse_occupation_data(results)
         pd.DataFrame(occupation_data).to_csv(f'data/extracted_occupations/{occupation_name}.csv', index=False)
