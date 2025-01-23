@@ -139,6 +139,7 @@ data_new/
 roberta-base_rules.txt
 Old
 horn_env
+test*
 
 !data/occupations.csv
 !data/known_countries.csv
