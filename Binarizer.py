@@ -94,7 +94,7 @@ class Binarizer:
         if not np.where(occupation_string==1)[0]: occupation = 'an unknown occupation'
         else: occupation = self.occupation_lookup[np.where(occupation_string == 1)[0][0]]
 
-        if gender_string:
+        if not len(gender_string) == 0:
             gender = 'She' if gender_string[0] == 1 else 'He'
             return f"{gender} was born {birth} in {continent} and is a {occupation}."
         return f"<mask> was born {birth} in {continent} and is a {occupation}."

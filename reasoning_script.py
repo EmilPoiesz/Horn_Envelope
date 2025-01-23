@@ -33,33 +33,27 @@ def get_hypothesis_space(lengths):
 
     return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2)) #pow(2, total_clauses) gives total hypothesis space
 
-def get_random_sample(length, allow_zero = True, amount_of_true=1):
-    vec = np.zeros(length, dtype=np.int8)
+def get_random_sample(length, allow_zero=True):
 
     # TODO: is it needed to allow for all zeroes? The probability of equal possibility is higher
     # when the length of the attribute is smaller. It confused me why a "all equal" vector is needed.
 
     # allow for all zeroes: one extra sample length and if its out of index range, use all zeroes vector (equal possibility)
+    # Features that have fewer indices, like year born has only 5, will have higher chance of being all zero (1/6) compared to 
+    # features that have more indicies, like occupation with ~20. Is this the best way to do it?
+
+    vec = [0]*length
     if allow_zero:
-        idx = random.sample(range(length + 1), k=amount_of_true)
-    else:
-        idx = random.sample(range(length), k=amount_of_true)
-    for i in idx:
-        if i < length:
-            vec[i] = 1
-    return list(vec)
+        # This zero vector probability is something we can change as we see fit. I don't think this 
+        # current way of getting the zero vector is satisfactory.
+        zero_vec_prob = 1/(length+1)
+        if random.choices([True, False], weights=[zero_vec_prob, 1-zero_vec_prob], k=1)[0]: 
+            return vec
+    
+    vec[random.randint(0, length-1)] = 1
+    return vec
 
-def get_label(classification, gender):
-    """
-        Does handling no 1 in vector work as a diverse attribute (neither he or she) to include they?
-        -> never gets predicted so what rules result from that? Influences other attributes?
-    """
-    if (gender[0] == 1 and classification == 0) or (gender[1] == 1 and classification == 1):
-        return 1
-    else:
-        return 0
-
-def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = False):
+def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose = False):
     vec = []
 
     # The assignment is stored as a vector of binary values. The first 4 values corresond to birthyear ('before X', 'between X and Y', 'after Y'), 
@@ -86,7 +80,7 @@ def create_single_sample(lm : str, binarizer : Binarizer, unmasker, verbose = Fa
     
     # if the sampled gender is equal the classification (correctly classified) then we return 1 
     # if sampled gender and classification don't match, then we return 0 
-    label = get_label(classification, gender_vec)
+    label = gender_vec[classification]
     if verbose: print((vec, classification, gender_vec, label))
 
     return (vec,label)
@@ -126,10 +120,8 @@ def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
     gender_vec = assignment[-2:]
     s = binarizer.sentence_from_binary(vec)
     classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
-    label = get_label(classification, gender_vec)
-    res  = ( True if label == 1
-                else False)
-    return res
+    label = gender_vec[classification]
+    return bool(label)
     
 def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothesis_space, verbose = 0):
     bad_pc = []
