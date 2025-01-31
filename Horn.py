@@ -23,6 +23,12 @@ def evaluate(clause, x, V):
     assignment = {V[i]: x[i] for i in range(len(V))}
     return clause.subs(assignment)
 
+def models(assignment, hypothesis, V):
+    for clause in hypothesis:
+        if not evaluate(clause, assignment, V):
+            return False
+    return True
+    
 def from_set_to_theory(set):
     """
     Converts a set of boolean clauses to a single boolean expression using logical AND.
@@ -39,34 +45,32 @@ def from_set_to_theory(set):
 def is_subset(subset, superset):
     return all(x <= y for x, y in zip(subset, superset))
 
-def intersect_all_lists(lists):
-    return functools.reduce(lambda x, y: [a & b for a, b in zip(x, y)], lists)
+def intersection_of_lists(list_of_lists):
+    return functools.reduce(lambda x, y: [a & b for a, b in zip(x, y)], list_of_lists)
 
 def union_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
 
-def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, binarizer:Binarizer, background= {}, verbose = False,iterations=-1,guard=False):
+def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer:Binarizer, background:set, verbose = False,iterations=-1,guard=False):
     
     metadata = []
-    current_hypothesis = set()
-    current_hypothesis = current_hypothesis.union(background)
+
+    H = background
+    Q = set()
     
     negative_counterexamples = []
     positive_counterexamples = []
     non_horn_counterexamples = []
-
-    H = ()
-    Q = ()
 
     while iterations!=0:
         start = timeit.default_timer()
         iteration_data = {}
         
         # Issue with EQ oracle, checking H is fine, checking Q is not.
-        counterexample_response = ask_equivalence_oracle(current_hypothesis)
+        equivalence_oracle_response = ask_equivalence_oracle(H.union(Q))
 
         # Check if the hypothesis is correct
-        if type(counterexample_response) == bool and counterexample_response:
+        if type(equivalence_oracle_response) == bool and equivalence_oracle_response == True:
             stop = timeit.default_timer()
             iteration_data['runtime'] = stop-start
             metadata.append(iteration_data)
@@ -74,12 +78,12 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
                 f.write("=== TERMINATED ===\n")
             break
         
-        (counterexample, sample_number) = counterexample_response
+        (counterexample, sample_number) = equivalence_oracle_response
         iteration_data['sample'] = sample_number
         
         # Positive counterexample check
         positive_counterexample_flag = False
-        for clause in current_hypothesis:
+        for clause in H.union(Q):
             
             if evaluate(clause, counterexample, V): continue
             
@@ -95,9 +99,9 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
             for example in negative_counterexamples:
 
                 intersection_of_counterexamples = [example[i] & counterexample[i] for i in range(len(V))]
-                if  (intersection_of_counterexamples != example) and \
-                    (not ask_membership_oracle(intersection_of_counterexamples)) and \
-                    (intersection_of_counterexamples not in non_horn_counterexamples): #TODO: intersection models Q?
+                if (intersection_of_counterexamples != example) and \
+                   (not ask_membership_oracle(intersection_of_counterexamples)) and \
+                    models(intersection_of_counterexamples, Q, V):
                     
                     idx = negative_counterexamples.index(example)
                     negative_counterexamples[idx] = intersection_of_counterexamples
@@ -109,11 +113,11 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             if positive_superset == []: continue
-            if neg_counterexample == intersect_all_lists(positive_superset):
+            if neg_counterexample == intersection_of_lists(positive_superset):
                 negative_counterexamples.remove(neg_counterexample)
                 non_horn_counterexamples.append(neg_counterexample)
         
-        H = set()
+        H = background
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             antecedent = And(*[V[i] for i, val in enumerate(neg_counterexample) if val == 1])
@@ -133,15 +137,12 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
             implication = Implies(antecedent, consequent)
             Q.add(implication)
         
-        current_hypothesis = H.union(Q, background)
-        
         if verbose ==2:
             signed_counterexample = '+' if positive_counterexample_flag else '-'
-            #clauses_removed = iteration_data['Clauses removed']
             print(f'\nIteration: {abs(iterations)}\n\n' + 
                   f'({sample_number}) Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counterexample)}\n\n'+
-                  f'New Hypothesis: {sorted([str(h) for h in current_hypothesis if h not in background])}\n\n' +
-                  f'New Hypothesis length: {len(current_hypothesis)-len(background)} + background: {len(background)}\n\n' +
+                  f'New Hypothesis: {sorted([str(h) for h in H.union(Q) if h not in background])}\n\n' +
+                  f'New Hypothesis length: {len(H)+len(Q)-len(background)} + background: {len(background)}\n\n' +
                   f'total positive counterexamples:  {len(positive_counterexamples)}\n' +
                   f'total negative counterexamples:  {len(negative_counterexamples)} ({sum(sum(lst) for lst in negative_counterexamples)})\n' +
                   f'total non-horn counterexamples:  {len(non_horn_counterexamples)}\n\n\n\n')
@@ -153,9 +154,9 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         iteration_data['runtime'] = stop-start
         metadata.append(iteration_data)
         if iterations % 5 == 0:
-            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(current_hypothesis), rt = iteration_data['runtime'])
+            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(H.union(Q)), rt = iteration_data['runtime'])
             with open('output.txt', 'a') as f:
                 f.write(sentence)
     
     terminated = iterations != 0  
-    return (terminated, metadata, current_hypothesis)
+    return (terminated, metadata, H, Q)

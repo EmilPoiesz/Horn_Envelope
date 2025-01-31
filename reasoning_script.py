@@ -1,11 +1,9 @@
-import numpy as np
 import random
 import timeit
 from Horn import *
 from Binarizer import *
 from transformers import pipeline
 from helper_functions import *
-#from scipy.special import comb
 import pickle
 import json
 from config import EPSILON, DELTA
@@ -35,19 +33,10 @@ def get_hypothesis_space(lengths):
 
 def get_random_sample(length, allow_zero=True):
 
-    # TODO: is it needed to allow for all zeroes? The probability of equal possibility is higher
-    # when the length of the attribute is smaller. It confused me why a "all equal" vector is needed.
-
-    # allow for all zeroes: one extra sample length and if its out of index range, use all zeroes vector (equal possibility)
-    # Features that have fewer indices, like year born has only 5, will have higher chance of being all zero (1/6) compared to 
-    # features that have more indicies, like occupation with ~20. Is this the best way to do it?
-
     vec = [0]*length
     if allow_zero:
-        # This zero vector probability is something we can change as we see fit. I don't think this 
-        # current way of getting the zero vector is satisfactory.
         zero_vec_prob = 1/(length+1)
-        if random.choices([True, False], weights=[zero_vec_prob, 1-zero_vec_prob], k=1)[0]: 
+        if random.choices([True, False], weights=[zero_vec_prob, 1-zero_vec_prob])[0]: 
             return vec
     
     vec[random.randint(0, length-1)] = 1
@@ -85,34 +74,15 @@ def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose = False)
 
     return (vec,label)
 
-def ask_equivalence_oracle(H, lm, unmasker, V, bad_nc, hypothesis_space, binarizer:Binarizer):
-    h = true
-    if len(H):
-        # Create a long AND formula from all the clauses in the hypothesis.
-        h = from_set_to_theory(H)
+def ask_equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer):
     
-    # Looking through the number of examples needed according to the PAC learning framework.
-    # When do we look at the next example?
-    # - When the prediction of the sample is False and the sample breaks the current hypothesis.
-    # - When the prediction of the sample is False and the assignment is in the bad_nc list.
-    # - When the prediction of the sample is True and the sample follows the current hypothesis.
+    assert len(hypothesis) > 0
+    hypothesis = from_set_to_theory(hypothesis)
 
-    # Small Example:
-    # The hypothesis is the background knowledge, which is a set of disjoint variables.
-    # H = !(a&b) & !(a&c) & !(b&c) & !(d&e)
-    #
-    # All predictions follow the hypothesis, so we need to find a counterexample where the prediction is False.
-    # assignment = [1,0,0,  0,1] -> label = 0
-    #
-    # Why do we return i+1 here? -Keeping track of the number of examples needed to find a counterexample.
     for i in range(hypothesis_space):
-        (assignment,label) = create_single_sample(lm, binarizer, unmasker) # This create single sample will generate random samples. Is this why we need to keep track of the number of examples? For PAC?
-        # If the assignment is false but the hypothesis says its true.
-        if label == 0 and evaluate(h,assignment,V) and assignment not in bad_nc: # bad_nc is a list of bad negative counterexamples?
-            return (assignment, i+1)
-        # If the assignment is true but the hypothesis says its false.
-        if label == 1 and not evaluate(h,assignment,V):
-            return (assignment, i+1)
+        (assignment, label) = create_single_sample(lm, binarizer, unmasker)
+        if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
+
     return True
 
 def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
@@ -130,15 +100,15 @@ def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothes
     
     # Create lambda functions for asking the membership and equivalence oracles.
     ask_membership  = lambda assignment : ask_membership_oracle(assignment, lm, unmasker, binarizer)
-    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, bad_ne, hypothesis_space, binarizer) 
+    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, hypothesis_space, binarizer) 
 
     start = timeit.default_timer()
-    terminated, metadata, h = learn(V, ask_membership, ask_equivalence, bad_ne, bad_pc, binarizer, 
+    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership, ask_equivalence, binarizer, 
                                     background=background, iterations=iterations, verbose = verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 
-    return (h,runtime, terminated, metadata)
+    return (H, Q, runtime, terminated, metadata)
 
 def make_disjoint(V):
     """
@@ -179,7 +149,6 @@ def create_background(lengths, V):
     gender     = make_disjoint(V[occupation_end:gender_end])
     return birth | continent | occupation | gender
 
-
 if __name__ == '__main__':
     
     # The binarizer is used to convert the data into a binary format that can be used by the Horn algorithm.
@@ -203,9 +172,9 @@ if __name__ == '__main__':
     r=0
     for language_model in models:
         #for eq in eq_amounts:
-        (h,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, hypothesis_space, verbose=2)
+        (H, Q,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, hypothesis_space, verbose=2)
         metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
         with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
             json.dump(metadata, outfile)
         with open('data/rule_extraction/' + language_model + '_rules_' + str(iterations) + "_" + str(r+1) + '.txt', 'wb') as f:
-            pickle.dump(h, f)
+            pickle.dump(H, f)
