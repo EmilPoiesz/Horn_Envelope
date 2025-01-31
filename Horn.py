@@ -38,11 +38,11 @@ def evaluate(clause, x, V):
     #Check if clause is tautology or contradiction
     if clause == True or clause == False: return clause 
 
-    a = {V[i]: x[i] for i in range(len(V))}
+    assignment = {V[i]: x[i] for i in range(len(V))}
     #for i in range(len(V)):
     #    a[V[i]] = (True if x[i] == 1
     #                    else False)
-    return clause.subs(a)
+    return clause.subs(assignment)
 
 def from_set_to_theory(set):
     """
@@ -97,6 +97,7 @@ def MQ(assignment, V, target):
     t = from_set_to_theory(target)
     return evaluate(t,assignment,V)
 
+#TODO: This is not used?
 def get_hypothesis(negative_counterexamples, V, excluded_negative_counterexamples, background):
     H = set()
     for assignment in [example for example in negative_counterexamples if example not in excluded_negative_counterexamples]:
@@ -122,6 +123,7 @@ def get_body(clause):
         return (clause.args[0],)
     else: return clause.args[0].args
 
+#TODO: This is not used?
 def positive_check_and_prune(H,S,Pos,V,bad_nc):
     for pos in Pos:
         for clause in H.copy():
@@ -138,11 +140,13 @@ def positive_check_and_prune(H,S,Pos,V,bad_nc):
 
     return H
 
+#TODO: This is not used?
 def checkduplicates(x,S,enabled):
     if x in S and enabled:
         # print('ah! I am trying to add {} to S but the negative counterexample {} is already present in S.'.format(x,x))
         raise Exception('I am trying to add {} to S but the negative counterexample {} is already present in S.\nIf you are learning from examples classified by a neural network, it means that it is not encoding a horn theory.'.format(x,x))
 
+#TODO: This is not used?
 def identify_problematic_nc(H,S,bad_nc,V):
     # I am not sure what this does as it is not part of the algorithm so I have commented out the one use of this method.
 
@@ -157,6 +161,7 @@ def identify_problematic_nc(H,S,bad_nc,V):
         if (evaluate(h, a, V) == True):
             bad_nc.append(a)
 
+#TODO: This is not used?
 def is_going_to_be_duplicate(negative_counterexamples,example_intersection,bad_nc):
     if example_intersection in negative_counterexamples:
         bad_nc.append(example_intersection)
@@ -182,11 +187,14 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
     positive_counterexamples = []
     non_horn_counterexamples = []
 
+    H = ()
+    Q = ()
+
     while iterations!=0:
         start = timeit.default_timer()
         iteration_data = {}
-        #iteration_data['Clauses removed'] = []
         
+        # Issue with EQ oracle, checking H is fine, checking Q is not.
         counterexample_response = ask_equivalence_oracle(current_hypothesis)
 
         # Check if the hypothesis is correct
@@ -203,44 +211,33 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
         
         # Positive counterexample check
         positive_counterexample_flag = False
-        for antecedent in current_hypothesis:#.copy():
+        for clause in current_hypothesis:
             
-            if evaluate(antecedent, counterexample,V): continue
-            assert antecedent not in background
+            if evaluate(clause, counterexample, V): continue
             
-            #current_hypothesis.remove(clause) #This is different from the algorithm
-            #iteration_data['Clauses removed'].append(clause)
-
-            # Only add the counterexample once
-            #if counterexample not in positive_counterexamples:
+            assert clause not in background
             positive_counterexamples.append(counterexample)
-            
-            # Flag that the counter example is a positive counter example
             positive_counterexample_flag = True
             break
-
-            #check if a nc in S does not falsify a clause in H
-            #identify_problematic_nc(current_hypothesis, negative_counterexamples, bad_nc, V)
 
         # Negative counterexample check
         if not positive_counterexample_flag:
 
             replaced_flag = False
-            for negative_counterexample in negative_counterexamples:
+            for example in negative_counterexamples:
 
-                example_intersection = [negative_counterexample[i] & counterexample[i] for i in range(len(V))]
-                if  (example_intersection != negative_counterexample) and \
-                    (not ask_membership_oracle(example_intersection)) and \
-                    (example_intersection not in non_horn_counterexamples): #TODO: intersection models Q?
+                intersection_of_counterexamples = [example[i] & counterexample[i] for i in range(len(V))]
+                if  (intersection_of_counterexamples != example) and \
+                    (not ask_membership_oracle(intersection_of_counterexamples)) and \
+                    (intersection_of_counterexamples not in non_horn_counterexamples): #TODO: intersection models Q?
                     
-                    idx = negative_counterexamples.index(negative_counterexample)
-                    negative_counterexamples[idx] = example_intersection
+                    idx = negative_counterexamples.index(example)
+                    negative_counterexamples[idx] = intersection_of_counterexamples
                     replaced_flag = True
                     break
 
             if not replaced_flag: negative_counterexamples.append(counterexample)
 
-        #I added this section for moving negative counterexamples to non-Horn examples
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             if positive_superset == []: continue
@@ -269,10 +266,6 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
             Q.add(implication)
         
         current_hypothesis = H.union(Q, background)
-        # Is the hypothesis already the union of Horn and non-Horn clauses?
-        #current_hypothesis = get_hypothesis(negative_counterexamples, V, bad_nc, background)
-        #small optimisation. Refine hypo. with known positive counterexamples.
-        #current_hypothesis = positive_check_and_prune(current_hypothesis,negative_counterexamples,positive_counterexamples,V,bad_nc)
         
         if verbose ==2:
             signed_counterexample = '+' if positive_counterexample_flag else '-'
@@ -296,20 +289,5 @@ def learn(V, ask_membership_oracle, ask_equivalence_oracle, bad_nc, bad_pc, bina
             with open('output.txt', 'a') as f:
                 f.write(sentence)
     
-    # Did we terminate or exhaust the limit?
     terminated = iterations != 0  
     return (terminated, metadata, current_hypothesis)
-
-#this is the target
-# T = {((V[0] & V[1]) >> V[2]), (V[0] & V[3]) >> False}
-# A difficult target
-# T = {((V[0] & V[1]) >> V[2]), (V[0] & V[3]) >> False, V[1]}
-#
-# mq = lambda a : MQ(a,V, T)
-# eq = lambda a : EQ(a, V, T)
-# print('hypothesis found!\n',learn(V,mq,eq))
-
-
-# v = define_variables(4)
-# r = positive_check_and_prune({(v[0] >> v[1]), (~v[0])},[],v,[])
-# print(r)
