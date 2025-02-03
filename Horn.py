@@ -1,19 +1,7 @@
 from sympy import *
 import functools
 import timeit
-import Binarizer
-
-def define_variables(number):
-    """
-    Creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
-
-    Parameters:
-    number (int): The number of symbolic variables to generate.
-
-    Returns:
-    list: A list of symbolic variables.
-    """
-    return list(symbols("".join(['v'+str(i)+',' for i in range(number)])))
+import Binary_parser
 
 def evaluate(clause, x, V):
     
@@ -51,7 +39,7 @@ def intersection_of_lists(list_of_lists):
 def union_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
 
-def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer:Binarizer, background:set, verbose=False, iterations=-1):
+def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser:Binary_parser, background:set, verbose=False, iterations=-1):
     
     metadata = []
 
@@ -139,7 +127,7 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binari
         if verbose ==2:
             signed_counterexample = '+' if positive_counterexample_flag else '-'
             print(f'\nIteration: {abs(iterations)}\n\n' + 
-                  f'({sample_number}) Counterexample: ({signed_counterexample}) {binarizer.sentence_from_binary(counterexample)}\n\n'+
+                  f'({sample_number}) Counterexample: ({signed_counterexample}) {binary_parser.sentence_from_binary(counterexample)}\n\n'+
                   f'New Hypothesis: {sorted([str(h) for h in H.union(Q) if h not in background])}\n\n' +
                   f'New Hypothesis length: {len(H)+len(Q)-len(background)} + background: {len(background)}\n\n' +
                   f'total positive counterexamples:  {len(positive_counterexamples)}\n' +

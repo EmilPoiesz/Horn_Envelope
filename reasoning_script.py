@@ -1,12 +1,24 @@
 import random
 import timeit
 from Horn import *
-from Binarizer import *
+from Binary_parser import *
 from transformers import pipeline
 from helper_functions import *
 import pickle
 import json
 from config import EPSILON, DELTA
+
+def define_variables(number):
+    """
+    Creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
+
+    Parameters:
+    number (int): The number of symbolic variables to generate.
+
+    Returns:
+    list: A list of symbolic variables.
+    """
+    return list(symbols("".join(['v'+str(i)+',' for i in range(number)])))
 
 def get_hypothesis_space(lengths):
     """
@@ -16,6 +28,7 @@ def get_hypothesis_space(lengths):
     Approximately Correct) learning framework. The formula used here 
     combines the logarithms of the original PAC learning formula into a 
     single logarithm, which is valid when the number of hypotheses is finite.
+    
     Args:
         lengths (dict): A dictionary where the keys are feature names and 
                         the values are the number of possible values for 
@@ -28,10 +41,20 @@ def get_hypothesis_space(lengths):
     total_clauses = 1
     for length in lengths.values():
         total_clauses *= length
-
-    return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2)) #pow(2, total_clauses) gives total hypothesis space
+    return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2))
 
 def get_random_sample(length, allow_zero=True):
+    """
+    Generate a random sample vector of a given length with binary values (0 or 1).
+
+    Args:
+        length (int): The length of the vector to be generated.
+        allow_zero (bool): If True, the vector can be all zeros. If False, one element will be 1.
+
+    Returns:
+        list: A list of integers (0 or 1) of the specified length. If allow_zero is True, the list can be all zeros.
+              If allow_zero is False, one element in the list will be 1.
+    """
 
     vec = [0]*length
     if allow_zero:
@@ -42,13 +65,13 @@ def get_random_sample(length, allow_zero=True):
     vec[random.randint(0, length-1)] = 1
     return vec
 
-def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose=False):
+def create_single_sample(lm:str, binary_parser:Binary_parser, unmasker, verbose=False):
     
     vec = []
     for att in attributes:
-        vec = [*vec, *get_random_sample(binarizer.lengths[att], allow_zero=True)]
+        vec = [*vec, *get_random_sample(binary_parser.lengths[att], allow_zero=True)]
     
-    s = binarizer.sentence_from_binary(vec)
+    s = binary_parser.sentence_from_binary(vec)
     if verbose: print(s)
 
     # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
@@ -68,37 +91,37 @@ def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose=False):
 
     return (vec,label)
 
-def equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer):
+def equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binary_parser):
     
     assert len(hypothesis) > 0
     hypothesis = from_set_to_theory(hypothesis)
 
     for i in range(hypothesis_space):
-        (assignment, label) = create_single_sample(lm, binarizer, unmasker)
+        (assignment, label) = create_single_sample(lm, binary_parser, unmasker)
         if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
 
     return True
 
-def membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
+def membership_oracle(assignment, lm, unmasker, binary_parser:Binary_parser):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
-    s = binarizer.sentence_from_binary(vec)
+    s = binary_parser.sentence_from_binary(vec)
     classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
     label = gender_vec[classification]
     return bool(label)
     
-def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothesis_space, verbose = 0):
+def extract_horn_with_queries(lm, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
 
     unmasker = pipeline('fill-mask', model=lm)
     
     # Create lambda functions for asking the membership and equivalence oracles.
-    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, lm, unmasker, binarizer)
+    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, lm, unmasker, binary_parser)
     #TODO: Should H and Q be given individually such that we can assess them seperately?
     #Checking H is fine, how to check Q?
-    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer) 
+    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binary_parser) 
 
     start = timeit.default_timer()
-    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer, 
+    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser, 
                                                      background=background, iterations=iterations, verbose=verbose)
     stop = timeit.default_timer()
     runtime = stop-start
@@ -146,28 +169,22 @@ def create_background(lengths, V):
 
 if __name__ == '__main__':
     
-    # The binarizer is used to convert the data into a binary format that can be used by the Horn algorithm.
-    binarizer = Binarizer('data/known_countries.csv', 'data/occupations.csv')
+    # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
+    binary_parser = Binary_parser('data/known_countries.csv', 'data/occupations.csv')
     attributes = ['birth', 'continent', 'occupation']
 
-    V = define_variables(sum(binarizer.lengths.values()))
-    hypothesis_space = get_hypothesis_space(binarizer.lengths)
+    V = define_variables(sum(binary_parser.lengths.values()))
+    background = create_background(binary_parser.lengths, V)
+    hypothesis_space = get_hypothesis_space(binary_parser.lengths)
+    
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
     models = ['roberta-base']
-    eq_amounts = [50, 100, 150, 200]
-    language_model = models[0]
-    #seed = 123 #reproducability
-    epsilon = 0.2
-    delta = 0.1
 
-    background = create_background(binarizer.lengths, V)
-
-    #5000 as a placeholder for an uncapped run (it will terminate way before reaching this)
     iterations = 5000
     r=0
     for language_model in models:
         #for eq in eq_amounts:
-        (H, Q,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binarizer, background, hypothesis_space, verbose=2)
+        (H, Q,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose=2)
         metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
         with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
             json.dump(metadata, outfile)
