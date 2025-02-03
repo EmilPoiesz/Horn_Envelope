@@ -42,23 +42,17 @@ def get_random_sample(length, allow_zero=True):
     vec[random.randint(0, length-1)] = 1
     return vec
 
-def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose = False):
+def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose=False):
+    
     vec = []
-
-    # The assignment is stored as a vector of binary values. The first 4 values corresond to birthyear ('before X', 'between X and Y', 'after Y'), 
-    # the next 7 values correspond to the continent (one-hot-encoding) and the last 10 values correspond to the occupation (one-hot-encoding).
-    # Pick at random for each attribute to generate a sample.
     for att in attributes:
-        # get the appropriate vector for each attribute and tie them together in the end
         vec = [*vec, *get_random_sample(binarizer.lengths[att], allow_zero=True)]
     
     s = binarizer.sentence_from_binary(vec)
     if verbose: print(s)
 
-    # Ask the language model to predict the gender of the person in the sentence.
-    # classification: 0 = female, 1 = male
-
     # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
+    # 0 = female, 1 = male
     classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
     
     # Generate the gender of the person and append to the vector ([female, male])
@@ -67,14 +61,14 @@ def create_single_sample(lm:str, binarizer:Binarizer, unmasker, verbose = False)
     gender_vec = get_random_sample(2, allow_zero=False)
     vec = [*vec, *gender_vec]
     
-    # if the sampled gender is equal the classification (correctly classified) then we return 1 
-    # if sampled gender and classification don't match, then we return 0 
+    # 1 if sampled gender and classification match       (correctly classified)
+    # 0 if sampled gender and classification don't match (wrongly classified)
     label = gender_vec[classification]
     if verbose: print((vec, classification, gender_vec, label))
 
     return (vec,label)
 
-def ask_equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer):
+def equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer):
     
     assert len(hypothesis) > 0
     hypothesis = from_set_to_theory(hypothesis)
@@ -85,7 +79,7 @@ def ask_equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binari
 
     return True
 
-def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
+def membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
     s = binarizer.sentence_from_binary(vec)
@@ -94,17 +88,18 @@ def ask_membership_oracle(assignment, lm, unmasker, binarizer:Binarizer):
     return bool(label)
     
 def extract_horn_with_queries(lm, V, iterations, binarizer, background, hypothesis_space, verbose = 0):
-    bad_pc = []
-    bad_ne =[]
+
     unmasker = pipeline('fill-mask', model=lm)
     
     # Create lambda functions for asking the membership and equivalence oracles.
-    ask_membership  = lambda assignment : ask_membership_oracle(assignment, lm, unmasker, binarizer)
-    ask_equivalence = lambda assignment : ask_equivalence_oracle(assignment, lm, unmasker, V, hypothesis_space, binarizer) 
+    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, lm, unmasker, binarizer)
+    #TODO: Should H and Q be given individually such that we can assess them seperately?
+    #Checking H is fine, how to check Q?
+    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binarizer) 
 
     start = timeit.default_timer()
-    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership, ask_equivalence, binarizer, 
-                                    background=background, iterations=iterations, verbose = verbose)
+    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer, 
+                                                     background=background, iterations=iterations, verbose=verbose)
     stop = timeit.default_timer()
     runtime = stop-start
 

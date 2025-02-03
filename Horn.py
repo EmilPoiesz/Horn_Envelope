@@ -51,7 +51,7 @@ def intersection_of_lists(list_of_lists):
 def union_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
 
-def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer:Binarizer, background:set, verbose = False,iterations=-1,guard=False):
+def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binarizer:Binarizer, background:set, verbose=False, iterations=-1):
     
     metadata = []
 
@@ -69,7 +69,6 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binari
         # Issue with EQ oracle, checking H is fine, checking Q is not.
         equivalence_oracle_response = ask_equivalence_oracle(H.union(Q))
 
-        # Check if the hypothesis is correct
         if type(equivalence_oracle_response) == bool and equivalence_oracle_response == True:
             stop = timeit.default_timer()
             iteration_data['runtime'] = stop-start
