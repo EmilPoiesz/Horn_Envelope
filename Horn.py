@@ -50,7 +50,7 @@ def intersection_of_lists(list_of_lists):
 def union_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
 
-def learn_horn_envelope(V:list, ask_membership_oracle:function, ask_equivalence_oracle:function, binary_parser:Binary_parser, background:set, verbose:bool=False, iterations:int=-1):
+def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, binary_parser:Binary_parser, background:set, verbose:bool=False, iterations:int=-1):
     
     metadata = []
 

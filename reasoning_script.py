@@ -78,7 +78,7 @@ def get_random_sample(length, allow_zero=True):
     vec[random.randint(0, length-1)] = 1
     return vec
 
-def create_single_sample(lm:str, binary_parser:Binary_parser, unmasker, verbose=False):
+def create_single_sample(binary_parser:Binary_parser, unmasker, verbose=False):
     
     vec = []
     for att in attributes:
@@ -89,7 +89,7 @@ def create_single_sample(lm:str, binary_parser:Binary_parser, unmasker, verbose=
 
     # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
     # 0 = female, 1 = male
-    classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
+    classification = get_prediction(lm_inference(unmasker, s), binary = True)
     
     # Generate the gender of the person and append to the vector ([female, male])
     # TODO: does this represent the real world? We are only looking to see what occupations are more skewed.
@@ -104,34 +104,34 @@ def create_single_sample(lm:str, binary_parser:Binary_parser, unmasker, verbose=
 
     return (vec,label)
 
-def equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binary_parser):
+def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser):
     
     assert len(hypothesis) > 0
     hypothesis = from_set_to_hypothesis(hypothesis)
 
     for i in range(hypothesis_space):
-        (assignment, label) = create_single_sample(lm, binary_parser, unmasker)
+        (assignment, label) = create_single_sample(binary_parser, unmasker)
         if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
 
     return True
 
-def membership_oracle(assignment, lm, unmasker, binary_parser:Binary_parser):
+def membership_oracle(assignment, unmasker, binary_parser:Binary_parser):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
     s = binary_parser.sentence_from_binary(vec)
-    classification = get_prediction(lm_inference(unmasker, s, model=lm), binary = True)
+    classification = get_prediction(lm_inference(unmasker, s), binary = True)
     label = gender_vec[classification]
     return bool(label)
     
-def extract_horn_with_queries(lm, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
+def extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
 
-    unmasker = pipeline('fill-mask', model=lm)
+    unmasking_model = pipeline('fill-mask', model=language_model)
     
     # Create lambda functions for asking the membership and equivalence oracles.
-    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, lm, unmasker, binary_parser)
+    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, unmasking_model, binary_parser)
     #TODO: Should H and Q be given individually such that we can assess them seperately?
     #Checking H is fine, how to check Q?
-    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binary_parser) 
+    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_parser) 
 
     start = timeit.default_timer()
     terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser, 
@@ -140,6 +140,10 @@ def extract_horn_with_queries(lm, V, iterations, binary_parser, background, hypo
     runtime = stop-start
 
     return (H, Q, runtime, terminated, metadata)
+
+def lm_inference(unmasking_model, sentence):
+    sentence = sentence.replace('<mask>', unmasking_model.tokenizer.mask_token)
+    return unmasking_model(sentence)
 
 def make_disjoint(V):
     """
@@ -191,13 +195,13 @@ if __name__ == '__main__':
     hypothesis_space = get_hypothesis_space(binary_parser.lengths)
     
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-    models = ['roberta-base']
+    models = ['bert-base-cased']
 
     iterations = 5000
     r=0
     for language_model in models:
         #for eq in eq_amounts:
-        (H, Q,runtime,terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose=2)
+        (H, Q, runtime, terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose=2)
         metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
         with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
             json.dump(metadata, outfile)
