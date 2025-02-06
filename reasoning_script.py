@@ -10,7 +10,7 @@ from Horn import evaluate, learn_horn_envelope
 from transformers import pipeline
 from config import EPSILON, DELTA
 
-def get_hypothesis_space(lengths):
+def get_PAC_hypothesis_space(lengths):
     """
     Calculate the equivalent sample size needed for PAC learning.
     This function computes the number of samples required to learn with 
@@ -56,52 +56,56 @@ def get_attribute_vector(length, allow_zero=True):
     attribute_vector[random.randint(0, length-1)] = 1
     return attribute_vector
 
-def create_sample(binary_parser:Binary_parser, unmasker, verbose=False):
+def create_sample(binary_parser:Binary_parser, unmasking_model, verbose=False):
     
-    binary_sample = []
+    # Generate sample vector
+    sample_vector = []
     for att in attributes:
-        binary_sample = [*binary_sample, *get_attribute_vector(binary_parser.lengths[att], allow_zero=True)]
-    sentence = binary_parser.sentence_from_binary(binary_sample)
+        sample_vector = [*sample_vector, *get_attribute_vector(binary_parser.lengths[att], allow_zero=True)]
+    gender_vector = get_attribute_vector(2, allow_zero=False)
     
-    if verbose: print(sentence)
-
-    # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
-    # 0 = female, 1 = male
-    classification = get_prediction(unmasker, sentence, binary = True)
+    assert 1 in gender_vector
     
-    # Generate the gender of the person and append to the vector ([female, male])
-    # TODO: does this represent the real world? We are only looking to see what occupations are more skewed.
-    # Maybe here we should also include a 'they' option? Or generate while considering historical data?
-    gender_vec = get_attribute_vector(2, allow_zero=False)
-    binary_sample = [*binary_sample, *gender_vec]
+    # Query model and get label (positive/negative counterexample?)
+    sentence = binary_parser.sentence_from_binary(sample_vector)
+    prediction = get_prediction(unmasking_model, sentence)
+    label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
     
-    # 1 if sampled gender and classification match       (correctly classified)
-    # 0 if sampled gender and classification don't match (wrongly classified)
-    label = gender_vec[classification]
-    if verbose: print((binary_sample, classification, gender_vec, label))
+    # Combine the sample
+    sample_vector = [*sample_vector, *gender_vector]
+    if verbose: print(sentence); print((sample_vector, prediction, gender_vector, label))
+    
+    return (sample_vector,label)
 
-    return (binary_sample,label)
-
-def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser):
+def equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_parser):
     
     assert len(hypothesis) > 0
 
     # Reduce the hypothesis to a conjunction of clauses
     hypothesis = functools.reduce(lambda x,y: x & y, hypothesis)
-    
-    for i in range(hypothesis_space):
-        (assignment, label) = create_sample(binary_parser, unmasker)
-        if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
 
+    for i in range(hypothesis_space):
+        (assignment, label) = create_sample(binary_parser, unmasking_model)
+        if not (bool(label) == evaluate(hypothesis, assignment, V)): 
+            return (assignment, i+1)
+
+    # No counterexample was found, the hypothesis is true.
     return True
 
-def membership_oracle(assignment, unmasker, binary_parser:Binary_parser):
-    vec = assignment[:-2]
-    gender_vec = assignment[-2:]
-    sentence = binary_parser.sentence_from_binary(vec)
-    classification = get_prediction(unmasker, sentence, binary = True)
-    label = gender_vec[classification]
-    return bool(label)
+def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
+    sample_vector = assignment[:-2]
+    gender_vector = assignment[-2:]
+
+    # TODO: When the intersection is of two counterexamples with different gender,
+    # then the assignment is without gender and is interpreted as always wrong.
+    # But does it mean that? How do we test otherwise?
+    #assert 1 in gender_vector
+
+    sentence = binary_parser.sentence_from_binary(sample_vector)
+    prediction = get_prediction(unmasking_model, sentence)
+    label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
+    
+    return label
     
 def extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
 
@@ -109,8 +113,6 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
     
     # Create lambda functions for asking the membership and equivalence oracles.
     ask_membership_oracle  = lambda assignment : membership_oracle(assignment, unmasking_model, binary_parser)
-    #TODO: Should H and Q be given individually such that we can assess them seperately?
-    #Checking H is fine, how to check Q?
     ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_parser) 
 
     start = timeit.default_timer()
@@ -122,33 +124,31 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
     return (H, Q, runtime, terminated, metadata)
 
 
-def get_prediction(unmasking_model, sentence, binary=False):
+def get_prediction(unmasking_model, sentence, gender_preferred=True):
     """
     Gets the prediction of the unmasking model. If binary is set to
     True then it returns 0 or 1 for only 'He/he' and 'She/she' pronouns
     else returns the most probable token.
 
     Args:
-        unmasking_model: The language model
-        sentence:        The masked sentence
-        binary:          Return binary or string
+        unmasking_model:  The language model
+        sentence:         The masked sentence
+        gender_preferred: Returns gender pronoun first
     
     Returns:
-        0 or 1 if binary is True, else string with most probable token.
+        A string with the best prediction of the model.
     """
 
     sentence = sentence.replace('<mask>', unmasking_model.tokenizer.mask_token)
     predictions = unmasking_model(sentence)
 
-    # TODO: This is a forceful way to ensure 'He' or 'She'. Can we think of something better?
-    if binary:
+    if gender_preferred:
         tokens = [pred['token_str'] for pred in predictions]
         for token in tokens:
-            if token in ['She', 'she']: return 0
-            if token in ['He', 'he']:   return 1
-        #TODO: what if we get here?
+            if token in ['She', 'she', 'He', 'he']: return token
 
-    return predictions[0]['token_str'] #TODO: Not comfortable returning different types of data, should be refactored.
+    # Return best guess
+    return predictions[0]['token_str']
 
 def make_disjoint(V):
     """
@@ -192,7 +192,7 @@ def create_background(lengths, V):
 if __name__ == '__main__':
     
     # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
-    binary_parser = Binary_parser('data/known_countries.csv', 'data/occupations.csv')
+    binary_parser = Binary_parser.Binary_parser('data/known_countries.csv', 'data/occupations.csv')
     attributes = ['birth', 'continent', 'occupation']
 
     # Define variables
@@ -201,16 +201,16 @@ if __name__ == '__main__':
     V = list(sympy.symbols(variable_string))
 
     background = create_background(binary_parser.lengths, V)
-    hypothesis_space = get_hypothesis_space(binary_parser.lengths)
+    pac_hypothesis_space = get_PAC_hypothesis_space(binary_parser.lengths)
     
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-    models = ['bert-base-cased']
+    models = ['roberta-base']
 
     iterations = 5000
     r=0
     for language_model in models:
         #for eq in eq_amounts:
-        (H, Q, runtime, terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose=2)
+        (H, Q, runtime, terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
         metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
         with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
             json.dump(metadata, outfile)

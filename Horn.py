@@ -14,6 +14,9 @@ def evaluate(clause, x, V):
         A binary lists where 1 correspond to a true variable and 0 to false.
     V (list):
         An exhaustive list of possible variables. 
+
+    Returns:
+    The truth value of the clause with the given assignment.
     """
     
     # Clause is a tautology or a contradiction
@@ -54,7 +57,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
     
     metadata = []
 
-    H = background
+    H = background.copy()
     Q = set()
     
     negative_counterexamples = []
@@ -118,7 +121,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
                 non_horn_counterexamples.append(neg_counterexample)
         
         # Reconstruct H
-        H = background
+        H = background.copy()
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             antecedent = And(*[V[i] for i, val in enumerate(neg_counterexample) if val == 1])
@@ -143,7 +146,8 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
             signed_counterexample = '+' if positive_counterexample_flag else '-'
             print(f'\nIteration: {abs(iterations)}\n\n' + 
                   f'({sample_number}) Counterexample: ({signed_counterexample}) {binary_parser.sentence_from_binary(counterexample)}\n\n'+
-                  f'New Hypothesis: {sorted([str(h) for h in H.union(Q) if h not in background])}\n\n' +
+                  f'New Hypothesis H: {sorted([str(h) for h in H if h not in background])}\n\n' +
+                  f'New Hypothesis Q: {[q for q in Q]}\n\n' +
                   f'New Hypothesis length: {len(H)+len(Q)-len(background)} + background: {len(background)}\n\n' +
                   f'total positive counterexamples:  {len(positive_counterexamples)}\n' +
                   f'total negative counterexamples:  {len(negative_counterexamples)} ({sum(sum(lst) for lst in negative_counterexamples)})\n' +
