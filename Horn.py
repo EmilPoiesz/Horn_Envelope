@@ -4,31 +4,42 @@ import timeit
 import Binary_parser
 
 def evaluate(clause, x, V):
+    """
+    Evaluates the clause as True or False with given assignment x.
+
+    Args:
+    clause ():
+        The clause that is to be evaluated.
+    x (list):
+        A binary lists where 1 correspond to a true variable and 0 to false.
+    V (list):
+        An exhaustive list of possible variables. 
+    """
     
-    #tautology or contradiction
+    # Clause is a tautology or a contradiction
     if clause == True or clause == False: return clause 
 
     assignment = {V[i]: x[i] for i in range(len(V))}
     return clause.subs(assignment)
 
 def models(assignment, hypothesis, V):
+    """
+    Checks if the given assignment models the current hypothesis. If there is a clause in the
+    hypothesis that is evaluated to false by the assignment then the assignment does not model 
+    the hypothesis.
+
+    Args:
+    assignment (list): 
+        An binary list where 1 corresponds to a true variable and 0 corresponds to a false variable.
+    hypothesis (set): 
+        A set of clauses that together form the hypothesis.
+    V (list):
+        An exhaustive list of possible variables. 
+    """
     for clause in hypothesis:
         if not evaluate(clause, assignment, V):
             return False
     return True
-    
-def from_set_to_theory(set):
-    """
-    Converts a set of boolean clauses to a single boolean expression using logical AND.
-
-    Args:
-        set (iterable): An iterable of boolean clauses.
-
-    Returns:
-        Expr: The result of performing a logical AND operation on all elements in the set.
-    """
-
-    return functools.reduce(lambda x,y: x & y, set)
 
 def is_subset(subset, superset):
     return all(x <= y for x, y in zip(subset, superset))
@@ -39,7 +50,7 @@ def intersection_of_lists(list_of_lists):
 def union_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
 
-def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser:Binary_parser, background:set, verbose=False, iterations=-1):
+def learn_horn_envelope(V:list, ask_membership_oracle:function, ask_equivalence_oracle:function, binary_parser:Binary_parser, background:set, verbose:bool=False, iterations:int=-1):
     
     metadata = []
 
@@ -86,6 +97,7 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary
             for example in negative_counterexamples:
 
                 intersection_of_counterexamples = [example[i] & counterexample[i] for i in range(len(V))]
+                
                 if (intersection_of_counterexamples != example) and \
                    (not ask_membership_oracle(intersection_of_counterexamples)) and \
                     models(intersection_of_counterexamples, Q, V):
@@ -97,6 +109,7 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary
 
             if not replaced_flag: negative_counterexamples.append(counterexample)
 
+        # Non-Horn check
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             if positive_superset == []: continue
@@ -104,6 +117,7 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary
                 negative_counterexamples.remove(neg_counterexample)
                 non_horn_counterexamples.append(neg_counterexample)
         
+        # Reconstruct H
         H = background
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
@@ -117,6 +131,7 @@ def learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary
                 implication = Implies(antecedent, consequent)
                 H.add(implication)
 
+        # Reconstruct Q
         Q = set()
         for nh_counterexample in non_horn_counterexamples:
             antecedent = And(*[V[i] for i, val in enumerate(nh_counterexample) if val == 1])

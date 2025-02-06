@@ -20,6 +20,19 @@ def define_variables(number):
     """
     return list(symbols("".join(['v'+str(i)+',' for i in range(number)])))
 
+def from_set_to_hypothesis(set):
+    """
+    Converts a set of boolean clauses to a single boolean expression using logical AND.
+
+    Args:
+        set (iterable): An iterable of boolean clauses.
+
+    Returns:
+        Expr: The result of performing a logical AND operation on all elements in the set.
+    """
+
+    return functools.reduce(lambda x,y: x & y, set)
+
 def get_hypothesis_space(lengths):
     """
     Calculate the equivalent sample size needed for PAC learning.
@@ -94,7 +107,7 @@ def create_single_sample(lm:str, binary_parser:Binary_parser, unmasker, verbose=
 def equivalence_oracle(hypothesis, lm, unmasker, V, hypothesis_space, binary_parser):
     
     assert len(hypothesis) > 0
-    hypothesis = from_set_to_theory(hypothesis)
+    hypothesis = from_set_to_hypothesis(hypothesis)
 
     for i in range(hypothesis_space):
         (assignment, label) = create_single_sample(lm, binary_parser, unmasker)
