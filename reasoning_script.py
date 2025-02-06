@@ -1,37 +1,14 @@
 import random
 import timeit
-from Horn import *
-from Binary_parser import *
-from transformers import pipeline
-from helper_functions import *
 import pickle
 import json
+import functools
+import Binary_parser
+import sympy
+
+from Horn import evaluate, learn_horn_envelope
+from transformers import pipeline
 from config import EPSILON, DELTA
-
-def define_variables(number):
-    """
-    Creates a list of symbolic variables named 'v0', 'v1', ..., 'v(number-1)'.
-
-    Parameters:
-    number (int): The number of symbolic variables to generate.
-
-    Returns:
-    list: A list of symbolic variables.
-    """
-    return list(symbols("".join(['v'+str(i)+',' for i in range(number)])))
-
-def from_set_to_hypothesis(set):
-    """
-    Converts a set of boolean clauses to a single boolean expression using logical AND.
-
-    Args:
-        set (iterable): An iterable of boolean clauses.
-
-    Returns:
-        Expr: The result of performing a logical AND operation on all elements in the set.
-    """
-
-    return functools.reduce(lambda x,y: x & y, set)
 
 def get_hypothesis_space(lengths):
     """
@@ -54,7 +31,7 @@ def get_hypothesis_space(lengths):
     total_clauses = 1
     for length in lengths.values():
         total_clauses *= length
-    return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2))
+    return int ( (1/EPSILON) * sympy.log( (sympy.Pow(2,total_clauses) / DELTA), 2))
 
 def get_attribute_vector(length, allow_zero=True):
     """
@@ -108,8 +85,10 @@ def create_sample(binary_parser:Binary_parser, unmasker, verbose=False):
 def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser):
     
     assert len(hypothesis) > 0
-    hypothesis = from_set_to_hypothesis(hypothesis)
 
+    # Reduce the hypothesis to a conjunction of clauses
+    hypothesis = functools.reduce(lambda x,y: x & y, hypothesis)
+    
     for i in range(hypothesis_space):
         (assignment, label) = create_sample(binary_parser, unmasker)
         if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
@@ -144,6 +123,19 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
 
 
 def get_prediction(unmasking_model, sentence, binary=False):
+    """
+    Gets the prediction of the unmasking model. If binary is set to
+    True then it returns 0 or 1 for only 'He/he' and 'She/she' pronouns
+    else returns the most probable token.
+
+    Args:
+        unmasking_model: The language model
+        sentence:        The masked sentence
+        binary:          Return binary or string
+    
+    Returns:
+        0 or 1 if binary is True, else string with most probable token.
+    """
 
     sentence = sentence.replace('<mask>', unmasking_model.tokenizer.mask_token)
     predictions = unmasking_model(sentence)
@@ -156,7 +148,7 @@ def get_prediction(unmasking_model, sentence, binary=False):
             if token in ['He', 'he']:   return 1
         #TODO: what if we get here?
 
-    return predictions[0]['token_str']
+    return predictions[0]['token_str'] #TODO: Not comfortable returning different types of data, should be refactored.
 
 def make_disjoint(V):
     """
@@ -203,7 +195,11 @@ if __name__ == '__main__':
     binary_parser = Binary_parser('data/known_countries.csv', 'data/occupations.csv')
     attributes = ['birth', 'continent', 'occupation']
 
-    V = define_variables(sum(binary_parser.lengths.values()))
+    # Define variables
+    number_of_variables = sum(binary_parser.lengths.values())
+    variable_string = ','.join(f'v{i}' for i in range(number_of_variables))
+    V = list(sympy.symbols(variable_string))
+
     background = create_background(binary_parser.lengths, V)
     hypothesis_space = get_hypothesis_space(binary_parser.lengths)
     
