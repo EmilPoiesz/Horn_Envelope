@@ -56,9 +56,10 @@ def get_hypothesis_space(lengths):
         total_clauses *= length
     return int ( (1/EPSILON) * log( (Pow(2,total_clauses) / DELTA), 2))
 
-def get_random_sample(length, allow_zero=True):
+def get_attribute_vector(length, allow_zero=True):
     """
-    Generate a random sample vector of a given length with binary values (0 or 1).
+    Generate a one hot encoded sample vector of a given length. If allow_zero=True then the zero
+    vector is possible.
 
     Args:
         length (int): The length of the vector to be generated.
@@ -69,22 +70,22 @@ def get_random_sample(length, allow_zero=True):
               If allow_zero is False, one element in the list will be 1.
     """
 
-    vec = [0]*length
     if allow_zero:
         zero_vec_prob = 1/(length+1)
         if random.choices([True, False], weights=[zero_vec_prob, 1-zero_vec_prob])[0]: 
-            return vec
+            return [0]*length
     
-    vec[random.randint(0, length-1)] = 1
-    return vec
+    attribute_vector = [0]*length
+    attribute_vector[random.randint(0, length-1)] = 1
+    return attribute_vector
 
-def create_single_sample(binary_parser:Binary_parser, unmasker, verbose=False):
+def create_sample(binary_parser:Binary_parser, unmasker, verbose=False):
     
-    vec = []
+    binary_sample = []
     for att in attributes:
-        vec = [*vec, *get_random_sample(binary_parser.lengths[att], allow_zero=True)]
+        binary_sample = [*binary_sample, *get_attribute_vector(binary_parser.lengths[att], allow_zero=True)]
+    sentence = binary_parser.sentence_from_binary(binary_sample)
     
-    sentence = binary_parser.sentence_from_binary(vec)
     if verbose: print(sentence)
 
     # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
@@ -94,15 +95,15 @@ def create_single_sample(binary_parser:Binary_parser, unmasker, verbose=False):
     # Generate the gender of the person and append to the vector ([female, male])
     # TODO: does this represent the real world? We are only looking to see what occupations are more skewed.
     # Maybe here we should also include a 'they' option? Or generate while considering historical data?
-    gender_vec = get_random_sample(2, allow_zero=False)
-    vec = [*vec, *gender_vec]
+    gender_vec = get_attribute_vector(2, allow_zero=False)
+    binary_sample = [*binary_sample, *gender_vec]
     
     # 1 if sampled gender and classification match       (correctly classified)
     # 0 if sampled gender and classification don't match (wrongly classified)
     label = gender_vec[classification]
-    if verbose: print((vec, classification, gender_vec, label))
+    if verbose: print((binary_sample, classification, gender_vec, label))
 
-    return (vec,label)
+    return (binary_sample,label)
 
 def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser):
     
@@ -110,7 +111,7 @@ def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser)
     hypothesis = from_set_to_hypothesis(hypothesis)
 
     for i in range(hypothesis_space):
-        (assignment, label) = create_single_sample(binary_parser, unmasker)
+        (assignment, label) = create_sample(binary_parser, unmasker)
         if not (bool(label) == evaluate(hypothesis, assignment, V)): return (assignment, i+1)
 
     return True
@@ -145,19 +146,17 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
 def get_prediction(unmasking_model, sentence, binary=False):
 
     sentence = sentence.replace('<mask>', unmasking_model.tokenizer.mask_token)
-    result = unmasking_model(sentence)
+    predictions = unmasking_model(sentence)
 
     # TODO: This is a forceful way to ensure 'He' or 'She'. Can we think of something better?
     if binary:
-        if result[0]['token_str'] == 'She':
-            return 0
-        elif result[0]['token_str'] == 'He':
-            return 1
-        else:
-            del result[0]
-            print('Recursion')
-            return get_prediction(result, binary = True)
-    return result[0]['token_str']
+        tokens = [pred['token_str'] for pred in predictions]
+        for token in tokens:
+            if token in ['She', 'she']: return 0
+            if token in ['He', 'he']:   return 1
+        #TODO: what if we get here?
+
+    return predictions[0]['token_str']
 
 def make_disjoint(V):
     """
