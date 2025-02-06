@@ -140,21 +140,3 @@ def get_continent(countryid, original=False):
         """.format(country = countryid)
     data = requests.get(url ,params={'query': query, 'format': 'json'}, headers=headers).json()
     return data
-
-def lm_inference(unmasker, sentence, model = 'roberta-base'):
-    if model.split('-')[0] == 'bert' :
-        sentence = sentence.replace('<mask>', '[MASK]')
-    return unmasker(sentence)
-
-def get_prediction(result, binary = False):
-    if binary:
-        if result[0]['token_str'] == 'She':
-            return 0
-        elif result[0]['token_str'] == 'He':
-            return 1
-        else:
-            del result[0]
-            print('Recursion')
-            return get_prediction(result, binary = True)
-    else:    
-        return result[0]['token_str']

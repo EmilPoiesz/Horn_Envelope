@@ -84,12 +84,12 @@ def create_single_sample(binary_parser:Binary_parser, unmasker, verbose=False):
     for att in attributes:
         vec = [*vec, *get_random_sample(binary_parser.lengths[att], allow_zero=True)]
     
-    s = binary_parser.sentence_from_binary(vec)
-    if verbose: print(s)
+    sentence = binary_parser.sentence_from_binary(vec)
+    if verbose: print(sentence)
 
     # Binary = True forces the result to be either 'He' or 'She'. If False then give best guess.
     # 0 = female, 1 = male
-    classification = get_prediction(lm_inference(unmasker, s), binary = True)
+    classification = get_prediction(unmasker, sentence, binary = True)
     
     # Generate the gender of the person and append to the vector ([female, male])
     # TODO: does this represent the real world? We are only looking to see what occupations are more skewed.
@@ -118,8 +118,8 @@ def equivalence_oracle(hypothesis, unmasker, V, hypothesis_space, binary_parser)
 def membership_oracle(assignment, unmasker, binary_parser:Binary_parser):
     vec = assignment[:-2]
     gender_vec = assignment[-2:]
-    s = binary_parser.sentence_from_binary(vec)
-    classification = get_prediction(lm_inference(unmasker, s), binary = True)
+    sentence = binary_parser.sentence_from_binary(vec)
+    classification = get_prediction(unmasker, sentence, binary = True)
     label = gender_vec[classification]
     return bool(label)
     
@@ -141,9 +141,23 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
 
     return (H, Q, runtime, terminated, metadata)
 
-def lm_inference(unmasking_model, sentence):
+
+def get_prediction(unmasking_model, sentence, binary=False):
+
     sentence = sentence.replace('<mask>', unmasking_model.tokenizer.mask_token)
-    return unmasking_model(sentence)
+    result = unmasking_model(sentence)
+
+    # TODO: This is a forceful way to ensure 'He' or 'She'. Can we think of something better?
+    if binary:
+        if result[0]['token_str'] == 'She':
+            return 0
+        elif result[0]['token_str'] == 'He':
+            return 1
+        else:
+            del result[0]
+            print('Recursion')
+            return get_prediction(result, binary = True)
+    return result[0]['token_str']
 
 def make_disjoint(V):
     """
