@@ -87,8 +87,8 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
         for clause in H.union(Q):
             
             if evaluate(clause, counterexample, V): continue
-            
             assert clause not in background
+            
             positive_counterexamples.append(counterexample)
             positive_counterexample_flag = True
             break
@@ -97,16 +97,16 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
         if not positive_counterexample_flag:
 
             replaced_flag = False
-            for example in negative_counterexamples:
+            for neg_example in negative_counterexamples:
 
-                intersection_of_counterexamples = [example[i] & counterexample[i] for i in range(len(V))]
+                counterexample_intersection = [neg_example[i] & counterexample[i] for i in range(len(V))]
                 
-                if (intersection_of_counterexamples != example) and \
-                   (not ask_membership_oracle(intersection_of_counterexamples)) and \
-                    models(intersection_of_counterexamples, Q, V):
+                if (counterexample_intersection != neg_example) and \
+                   (not ask_membership_oracle(counterexample_intersection)) and \
+                    models(counterexample_intersection, Q, V):
                     
-                    idx = negative_counterexamples.index(example)
-                    negative_counterexamples[idx] = intersection_of_counterexamples
+                    idx = negative_counterexamples.index(neg_example)
+                    negative_counterexamples[idx] = counterexample_intersection
                     replaced_flag = True
                     break
 
