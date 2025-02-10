@@ -125,14 +125,21 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
         for neg_counterexample in negative_counterexamples:
             positive_superset = [pos_counterexample for pos_counterexample in positive_counterexamples if is_subset(neg_counterexample, pos_counterexample)]
             antecedent = And(*[V[i] for i, val in enumerate(neg_counterexample) if val == 1])
-            if len(positive_superset) == 0:
-                consequent = False
-                implication = Implies(antecedent, consequent)
-                H.add(implication)
-            else:
+            
+            if len(positive_superset) == 0: consequent = False
+            # Here is an issue. We have negative counterexamples that have similar antecedents but the consequents of the positive
+            # superset will break with the background. Somehow we need to think about making the consequent consistent with the background.
+            # As the negative counterexamples are replaced by smaller counterexamples, the positive superset will be bigger, leading to
+            # more vaiables in the consequent which leads to more chance of breaking with the background.
+            # Do i need to do a check agaist the background here?
+
+            # Think about the rules we want to learn. If B and C them woman/man. How are we doing this?
+            else: 
                 consequent = And(*[V[i] for i, val in enumerate(union_of_lists(positive_superset)) if val == 1])
-                implication = Implies(antecedent, consequent)
-                H.add(implication)
+                p = 1
+            
+            implication = Implies(antecedent, consequent)
+            H.add(implication)
 
         # Reconstruct Q
         Q = set()

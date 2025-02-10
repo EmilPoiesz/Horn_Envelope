@@ -118,6 +118,9 @@ def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
     # If gender is not present then either gender is possible.
     if 1 not in gender_vector: return True
 
+    # The rules I am trying to learn should be of the form if B and C and D then woman/man
+    # The rules it feels like we are learning are if woman/man then B and C and D. 
+
     sentence = binary_parser.sentence_from_binary(sample_vector)
     prediction = get_prediction(unmasking_model, sentence)
     label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
