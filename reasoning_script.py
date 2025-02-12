@@ -119,7 +119,7 @@ def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
     if 1 not in gender_vector: return True
 
     # The rules I am trying to learn should be of the form if B and C and D then woman/man
-    # The rules it feels like we are learning are if woman/man then B and C and D. 
+    # The rules it feels like we are learning are if woman/man then B and C and D. ç
 
     sentence = binary_parser.sentence_from_binary(sample_vector)
     prediction = get_prediction(unmasking_model, sentence)

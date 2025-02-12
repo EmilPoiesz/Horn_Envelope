@@ -133,9 +133,9 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
             # more vaiables in the consequent which leads to more chance of breaking with the background.
             # Do i need to do a check agaist the background here?
 
-            # Think about the rules we want to learn. If B and C them woman/man. How are we doing this?
+            # Think about the rules we want to learn.
             else: 
-                consequent = And(*[V[i] for i, val in enumerate(union_of_lists(positive_superset)) if val == 1])
+                consequent = And(*[V[i] for i, val in enumerate(intersection_of_lists(positive_superset)) if val == 1])
                 p = 1
             
             implication = Implies(antecedent, consequent)
