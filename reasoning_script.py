@@ -96,30 +96,8 @@ def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
     sample_vector = assignment[:-2]
     gender_vector = assignment[-2:]
 
-    # TODO: When the intersection is of two counterexamples with different gender,
-    # then the assignment is without gender and is interpreted as always wrong.
-    #
-    # Example: 
-    # neg_example:    "He was born in timeperiodA in Europe and is a Blacksmith".
-    # counterexample: "She was born in timeperiodB in Europe and is a Blacksmith".
-    # 
-    # The intersection of counterexample and negative example is just:
-    # "<mask> was born in unknown timeperiod in Europe and is a Blacksmith".
-    #
-    # The true gender value we check against is unkown since the intersection
-    # was of two examples with different gender. This always evaluate as no since
-    # our check is if the model correctly predicts "He" or "She".
-    #
-    # The result of this is that the negative example "He was born in timeperiodA in Europe and is a Blacksmith"
-    # gets replaces with "<?> was born in unknown timeperiod in Europe and is a Blacksmith"
-    # TODO: I don't think the binary_parser has an option to parse unknown gender.
-
-    # TODO: think about this
-    # If gender is not present then either gender is possible.
+    # Since the gender is the masked token the gender variable is required.
     if 1 not in gender_vector: return True
-
-    # The rules I am trying to learn should be of the form if B and C and D then woman/man
-    # The rules it feels like we are learning are if woman/man then B and C and D. ç
 
     sentence = binary_parser.sentence_from_binary(sample_vector)
     prediction = get_prediction(unmasking_model, sentence)
@@ -142,7 +120,6 @@ def extract_horn_with_queries(language_model, V, iterations, binary_parser, back
     runtime = stop-start
 
     return (H, Q, runtime, terminated, metadata)
-
 
 def get_prediction(unmasking_model, sentence, gender_preferred=True):
     """

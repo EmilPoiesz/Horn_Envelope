@@ -50,9 +50,6 @@ def is_subset(subset, superset):
 def intersection_of_lists(list_of_lists):
     return functools.reduce(lambda x, y: [a & b for a, b in zip(x, y)], list_of_lists)
 
-def union_of_lists(list_of_lists):
-    return functools.reduce(lambda x, y: [a | b for a, b in zip(x, y)], list_of_lists)
-
 def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, binary_parser:Binary_parser, background:set, verbose:bool=False, iterations:int=-1):
     
     metadata = []
@@ -127,16 +124,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
             antecedent = And(*[V[i] for i, val in enumerate(neg_counterexample) if val == 1])
             
             if len(positive_superset) == 0: consequent = False
-            # Here is an issue. We have negative counterexamples that have similar antecedents but the consequents of the positive
-            # superset will break with the background. Somehow we need to think about making the consequent consistent with the background.
-            # As the negative counterexamples are replaced by smaller counterexamples, the positive superset will be bigger, leading to
-            # more vaiables in the consequent which leads to more chance of breaking with the background.
-            # Do i need to do a check agaist the background here?
-
-            # Think about the rules we want to learn.
-            else: 
-                consequent = And(*[V[i] for i, val in enumerate(intersection_of_lists(positive_superset)) if val == 1])
-                p = 1
+            else: consequent = And(*[V[i] for i, val in enumerate(intersection_of_lists(positive_superset)) if val == 1])
             
             implication = Implies(antecedent, consequent)
             H.add(implication)
