@@ -161,3 +161,14 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
     
     terminated = iterations != 0  
     return (terminated, metadata, H, Q)
+
+def learn_llama(ask_membership_oracle, iterations = 5):
+    
+    sentences = []
+    while iterations!=0:
+        sentence = ask_membership_oracle("Give me a short sentence.")
+        sentences.append(sentence)
+        print(sentence)
+        iterations-=1
+
+    return sentences

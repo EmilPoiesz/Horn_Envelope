@@ -1,14 +1,55 @@
 import random
 import timeit
-import pickle
-import json
 import functools
 import Binary_parser
 import sympy
+import torch
+import json
+import pickle
 
-from Horn import evaluate, learn_horn_envelope
-from transformers import pipeline
+from argparse import ArgumentParser
+from Horn import evaluate, learn_horn_envelope, learn_llama
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from config import EPSILON, DELTA
+
+def make_disjoint(V):
+    """
+    Create a disjoint set of variables from the list V.
+    
+    Parameters:
+    V (list): A list of variables to be made disjoint.
+    
+    Returns:
+    set: A set of disjoint variables.
+    """
+    disjoint_set = set()
+    for i in range(len(V)-1):
+        for j in range(i+1, len(V)):
+            disjoint_set.add(~(V[i] & V[j]))
+    return disjoint_set
+
+def create_background(lengths, V):
+    """
+    Create background knowledge as a set of disjoint variables for birth, continent, occupation, and gender.
+    The variables need to be disjoint since the groups are one-hot encoded.
+
+    Parameters:
+    lengths (dict): A dictionary containing the lengths of each attribute.
+    V (list): A list of variables.
+
+    Returns:
+    set: A set of disjoint variables representing the background knowledge.
+    """
+    birth_end      = lengths['birth']
+    continent_end  = birth_end + lengths['continent']
+    occupation_end = continent_end + lengths['occupation']
+    gender_end     = occupation_end + lengths['gender']
+
+    birth      = make_disjoint(V[:birth_end])
+    continent  = make_disjoint(V[birth_end:continent_end])
+    occupation = make_disjoint(V[continent_end:occupation_end])
+    gender     = make_disjoint(V[occupation_end:gender_end])
+    return birth | continent | occupation | gender
 
 def get_PAC_hypothesis_space(lengths):
     """
@@ -104,22 +145,10 @@ def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
     label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
     
     return label
-    
-def extract_horn_with_queries(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
 
-    unmasking_model = pipeline('fill-mask', model=language_model)
-    
-    # Create lambda functions for asking the membership and equivalence oracles.
-    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, unmasking_model, binary_parser)
-    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_parser) 
-
-    start = timeit.default_timer()
-    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser, 
-                                                     background=background, iterations=iterations, verbose=verbose)
-    stop = timeit.default_timer()
-    runtime = stop-start
-
-    return (H, Q, runtime, terminated, metadata)
+def membership_oracle_llama(prompt, modern_model):
+    output = modern_model(prompt)
+    return output[0]['generated_text']
 
 def get_prediction(unmasking_model, sentence, gender_preferred=True):
     """
@@ -147,46 +176,50 @@ def get_prediction(unmasking_model, sentence, gender_preferred=True):
     # Return best guess
     return predictions[0]['token_str']
 
-def make_disjoint(V):
-    """
-    Create a disjoint set of variables from the list V.
+def using_unmasking_model(language_model, V, iterations, binary_parser, background, hypothesis_space, verbose = 0):
+
+    unmasking_model = pipeline('fill-mask', model=language_model)
     
-    Parameters:
-    V (list): A list of variables to be made disjoint.
-    
-    Returns:
-    set: A set of disjoint variables.
-    """
-    disjoint_set = set()
-    for i in range(len(V)-1):
-        for j in range(i+1, len(V)):
-            disjoint_set.add(~(V[i] & V[j]))
-    return disjoint_set
+    # Create lambda functions for asking the membership and equivalence oracles.
+    ask_membership_oracle  = lambda assignment : membership_oracle(assignment, unmasking_model, binary_parser)
+    ask_equivalence_oracle = lambda hypothesis : equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_parser) 
 
-def create_background(lengths, V):
-    """
-    Create background knowledge as a set of disjoint variables for birth, continent, occupation, and gender.
-    The variables need to be disjoint since the groups are one-hot encoded.
+    start = timeit.default_timer()
+    terminated, metadata, H, Q = learn_horn_envelope(V, ask_membership_oracle, ask_equivalence_oracle, binary_parser, 
+                                                     background=background, iterations=iterations, verbose=verbose)
+    stop = timeit.default_timer()
+    runtime = stop-start
 
-    Parameters:
-    lengths (dict): A dictionary containing the lengths of each attribute.
-    V (list): A list of variables.
+    return (H, Q, runtime, terminated, metadata)
 
-    Returns:
-    set: A set of disjoint variables representing the background knowledge.
-    """
-    birth_end      = lengths['birth']
-    continent_end  = birth_end + lengths['continent']
-    occupation_end = continent_end + lengths['occupation']
-    gender_end     = occupation_end + lengths['gender']
+def using_modern_model(model_id):
 
-    birth      = make_disjoint(V[:birth_end])
-    continent  = make_disjoint(V[birth_end:continent_end])
-    occupation = make_disjoint(V[continent_end:occupation_end])
-    gender     = make_disjoint(V[occupation_end:gender_end])
-    return birth | continent | occupation | gender
+    model_id = "meta-llama/Llama-3.1-8B"
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    modern_model = pipeline("text-generation", 
+                            model=model,  
+                            tokenizer=tokenizer,
+                            device_map="auto")
+
+    # Create lambda functions for asking the membership and equivalence oracles.
+    ask_membership_oracle  = lambda prompt : membership_oracle_llama(prompt, modern_model)
+
+    start = timeit.default_timer()
+    sentences = learn_llama(ask_membership_oracle)
+    stop = timeit.default_timer()
+    runtime = stop-start
+
+    return (sentences, runtime)
 
 if __name__ == '__main__':
+
+    argparser = ArgumentParser()
+    argparser.add_argument('--mode', type=str, default='masked_model', help='The language model to use')
+    
+    args = argparser.parse_args()
     
     # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
     binary_parser = Binary_parser.Binary_parser('data/known_countries.csv', 'data/occupations.csv')
@@ -201,15 +234,25 @@ if __name__ == '__main__':
     pac_hypothesis_space = get_PAC_hypothesis_space(binary_parser.lengths)
     
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-    models = ['roberta-base']
+    if args.mode == 'masked_model':
+        models = ['roberta-base']
+    else:
+        models = ['meta-llama/Llama-3.1-8B']
 
-    iterations = 5000
-    r=0
-    for language_model in models:
-        #for eq in eq_amounts:
-        (H, Q, runtime, terminated, average_samples) = extract_horn_with_queries(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
-        metadata = {'head' : {'model' : language_model, 'experiment' : r+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
-        with open('data/rule_extraction/' + language_model + '_metadata_' + str(iterations) + "_" + str(r+1) + '.json', 'w') as outfile:
-            json.dump(metadata, outfile)
-        with open('data/rule_extraction/' + language_model + '_rules_' + str(iterations) + "_" + str(r+1) + '.txt', 'wb') as f:
-            pickle.dump(H, f)
+    for i, language_model in enumerate(models):
+        if args.mode == 'masked_model':
+        
+            (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, pac_hypothesis_space, binary_parser, background, pac_hypothesis_space, verbose=2)
+            metadata = {'head' : {'model' : language_model, 'experiment' : i+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
+            
+            with open('data/rule_extraction/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:
+                json.dump(metadata, outfile)
+            with open('data/rule_extraction/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.txt', 'wb') as f:
+                pickle.dump(H, f)
+        elif args.mode == 'modern_model':
+            (sentences, runtime) = using_modern_model(language_model)
+            print("Runtime: ", runtime)
+        else:
+            print("Invalid mode. Please use 'masked_model' or 'modern_model' as the mode.")
+            break
+        
