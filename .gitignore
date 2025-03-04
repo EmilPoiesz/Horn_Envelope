@@ -143,3 +143,4 @@ test*
 
 !data/occupations.csv
 !data/known_countries.csv
+!data/extracted_occupations/*
