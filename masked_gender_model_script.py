@@ -1,13 +1,13 @@
 import random
 import timeit
 import functools
-import Binary_parser
 import sympy
 import torch
 import json
 import pickle
 
 from argparse import ArgumentParser
+from Binary_parser import Binary_parser
 from Horn import evaluate, learn_horn_envelope, learn_llama
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from config import EPSILON, DELTA
@@ -218,11 +218,11 @@ if __name__ == '__main__':
 
     argparser = ArgumentParser()
     argparser.add_argument('--mode', type=str, default='masked_model', help='The language model to use')
-    
+    argparser.add_argument('--iterations', type=int, default=None)
     args = argparser.parse_args()
     
     # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
-    binary_parser = Binary_parser.Binary_parser('data/known_countries.csv', 'data/occupations.csv')
+    binary_parser = Binary_parser('data/known_countries.csv', 'data/occupations.csv')
     attributes = ['birth', 'continent', 'occupation']
 
     # Define variables
@@ -232,6 +232,8 @@ if __name__ == '__main__':
 
     background = create_background(binary_parser.lengths, V)
     pac_hypothesis_space = get_PAC_hypothesis_space(binary_parser.lengths)
+    if args.iterations == None: iterations = pac_hypothesis_space
+    else: iterations = args.iterations
     
     #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
     if args.mode == 'masked_model':
@@ -242,7 +244,7 @@ if __name__ == '__main__':
     for i, language_model in enumerate(models):
         if args.mode == 'masked_model':
         
-            (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, pac_hypothesis_space, binary_parser, background, pac_hypothesis_space, verbose=2)
+            (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
             metadata = {'head' : {'model' : language_model, 'experiment' : i+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
             
             with open('data/rule_extraction/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=in5550
-#SBATCH --account=ec403
-#SBATCH --time=00:30:00
+#SBATCH --job-name=horn_learner
+#SBATCH --account=ec30
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
 #SBATCH --mem-per-cpu=4G
 #
@@ -22,14 +22,11 @@ set -o nounset
 
 # the important bit: unload all current modules (just in case) and load only the necessary ones
 module purge
-module use -a /fp/projects01/ec30/software/easybuild/modules/all/
+module load PyTorch-bundle/2.1.2-foss-2023a-CUDA-12.1.1
+module load Python/3.10.8-GCCcore-12.2.0
+module load SciPy-bundle/2024.05-gfbf-2024a
+module load Transformers/4.39.3-gfbf-2023a
+module load sympy/1.12-gfbf-2023a
 
-module load nlpl-nlptools/04-foss-2022b-Python-3.10.8
-module load nlpl-pytorch/2.1.2-foss-2022b-cuda-12.0.0-Python-3.10.8
-module load nlpl-gensim/4.3.2-foss-2022b-Python-3.10.8
 
-# print information (optional)
-echo "submission directory: ${SUBMITDIR}"
-
-# by default, pass on any remaining command-line options
-python3 sanity.py ${@}
+python3 masked_gender_model_script.py ${@}
