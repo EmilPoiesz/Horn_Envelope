@@ -1,1 +1,92 @@
-{"head": {"model": "roberta-base", "experiment": 1}, "data": {"runtime": 3.725286417, "average_sample": [{"sample": 2, "runtime": 0.21277774999999988}, {"sample": 3, "runtime": 0.18542358400000003}, {"sample": 2, "runtime": 0.10064537500000004}, {"sample": 5, "runtime": 0.09727529199999996}, {"sample": 6, "runtime": 0.15589804099999993}, {"sample": 3, "runtime": 0.13830279200000017}, {"sample": 79, "runtime": 1.1180614579999997}, {"sample": 15, "runtime": 0.2568423750000006}, {"sample": 14, "runtime": 0.27110391700000047}, {"sample": 8, "runtime": 0.1542212919999999}, {"sample": 2, "runtime": 0.05599474999999998}, {"sample": 1, "runtime": 0.052580209000000266}, {"sample": 3, "runtime": 0.08176066700000018}, {"sample": 9, "runtime": 0.2226260419999999}, {"sample": 1, "runtime": 0.08237933300000044}, {"sample": 2, "runtime": 0.10435250000000007}, {"sample": 2, "runtime": 0.09358766700000043}, {"sample": 3, "runtime": 0.08093691599999975}, {"sample": 2, "runtime": 0.12288608300000003}, {"sample": 3, "runtime": 0.13694716699999976}], "terminated": false}}
+{
+    "head": {
+        "model": "roberta-base",
+        "experiment": 1
+    },
+    "data": {
+        "runtime": 3.725286417,
+        "average_sample": [
+            {
+                "sample": 2,
+                "runtime": 0.21277774999999988
+            },
+            {
+                "sample": 3,
+                "runtime": 0.18542358400000003
+            },
+            {
+                "sample": 2,
+                "runtime": 0.10064537500000004
+            },
+            {
+                "sample": 5,
+                "runtime": 0.09727529199999996
+            },
+            {
+                "sample": 6,
+                "runtime": 0.15589804099999993
+            },
+            {
+                "sample": 3,
+                "runtime": 0.13830279200000017
+            },
+            {
+                "sample": 79,
+                "runtime": 1.1180614579999997
+            },
+            {
+                "sample": 15,
+                "runtime": 0.2568423750000006
+            },
+            {
+                "sample": 14,
+                "runtime": 0.27110391700000047
+            },
+            {
+                "sample": 8,
+                "runtime": 0.1542212919999999
+            },
+            {
+                "sample": 2,
+                "runtime": 0.05599474999999998
+            },
+            {
+                "sample": 1,
+                "runtime": 0.052580209000000266
+            },
+            {
+                "sample": 3,
+                "runtime": 0.08176066700000018
+            },
+            {
+                "sample": 9,
+                "runtime": 0.2226260419999999
+            },
+            {
+                "sample": 1,
+                "runtime": 0.08237933300000044
+            },
+            {
+                "sample": 2,
+                "runtime": 0.10435250000000007
+            },
+            {
+                "sample": 2,
+                "runtime": 0.09358766700000043
+            },
+            {
+                "sample": 3,
+                "runtime": 0.08093691599999975
+            },
+            {
+                "sample": 2,
+                "runtime": 0.12288608300000003
+            },
+            {
+                "sample": 3,
+                "runtime": 0.13694716699999976
+            }
+        ],
+        "terminated": false
+    }
+}

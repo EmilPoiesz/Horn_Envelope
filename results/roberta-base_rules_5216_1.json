@@ -1,1 +1,12 @@
-{"rules": ["Implies(And(v1, v26), And(v1, v24, v26))", "Not(And(v24, v27))", "Not(And(v15, v2, v26))", "Not(And(v19, v26, v4, v5))", "Not(And(v13, v20, v26, v3))", "Not(And(v17, v26))", "Not(And(v22, v26))", "Not(And(v0, v26))"]}
+{
+    "rules": [
+        "Implies(And(v1, v26), And(v1, v24, v26))",
+        "Not(And(v24, v27))",
+        "Not(And(v15, v2, v26))",
+        "Not(And(v19, v26, v4, v5))",
+        "Not(And(v13, v20, v26, v3))",
+        "Not(And(v17, v26))",
+        "Not(And(v22, v26))",
+        "Not(And(v0, v26))"
+    ]
+}
