@@ -4,13 +4,13 @@ import functools
 import sympy
 import torch
 import json
-import pickle
 
 from argparse import ArgumentParser
-from Binary_parser import Binary_parser
+from parsers.binary_parser import Binary_parser
+from parsers.equation_parser import EquationParser
 from Horn import evaluate, learn_horn_envelope, learn_llama
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from config import EPSILON, DELTA
+from parsers.config import EPSILON, DELTA
 
 def make_disjoint(V):
     """
@@ -108,7 +108,7 @@ def create_sample(binary_parser:Binary_parser, unmasking_model, verbose=False):
     assert 1 in gender_vector
     
     # Query model and get label (positive/negative counterexample?)
-    sentence = binary_parser.sentence_from_binary(sample_vector)
+    sentence = binary_parser.binary_to_sentence(sample_vector)
     prediction = get_prediction(unmasking_model, sentence)
     label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
     
@@ -140,7 +140,7 @@ def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
     # Since the gender is the masked token the gender variable is required.
     if 1 not in gender_vector: return True
 
-    sentence = binary_parser.sentence_from_binary(sample_vector)
+    sentence = binary_parser.binary_to_sentence(sample_vector)
     prediction = get_prediction(unmasking_model, sentence)
     label = (prediction in ['She', 'she'] and gender_vector[0] == 1) or (prediction in ['He', 'he'] and gender_vector[1] == 1)
     
@@ -190,7 +190,7 @@ def using_unmasking_model(language_model, V, iterations, binary_parser, backgrou
     stop = timeit.default_timer()
     runtime = stop-start
 
-    return (H, Q, runtime, terminated, metadata)
+    return (H.difference(background), Q, runtime, terminated, metadata)
 
 def using_modern_model(model_id):
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     
     # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
-    binary_parser = Binary_parser('data/known_countries.csv', 'data/occupations.csv')
+    binary_parser = Binary_parser()
     attributes = ['birth', 'continent', 'occupation']
 
     # Define variables
@@ -247,12 +247,18 @@ if __name__ == '__main__':
             (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
             metadata = {'head' : {'model' : language_model, 'experiment' : i+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
             
-            print(type(list(H)[0]))
-            print(list(H)[0])
+            
+            H_ = [sympy.pretty(line, use_unicode=False) for line in list(H)]
+            
+            eq_parser = EquationParser(binary_parser, V)
+            H_1 = [eq_parser.parse(line) for line in H]
+
             with open('results/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:
                 json.dump(metadata, outfile)
-            with open('results/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.txt', 'wb') as f:
-                pickle.dump(H, f)
+            with open('results/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
+                json.dump({'rules':H_}, f)
+            with open('results/' + language_model + '_rulesTEST_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
+                json.dump({'rules':H_1}, f, ensure_ascii=False)
         elif args.mode == 'modern_model':
             (sentences, runtime) = using_modern_model(language_model)
             print("Runtime: ", runtime)

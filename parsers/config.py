@@ -86,7 +86,12 @@ SPARQL_QUERIES = {
         }}"""
 }
 
-AGE_CONTAINERS = [1875, 1925, 1951, 1970]
+FEATURES = {
+    'age_containers': [1875, 1925, 1951, 1970],
+    'continents': ['Africa', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'],
+    'occupations': ['nurse', 'blacksmith', 'lawyer', 'priest', 'singer']
+}
+
 
 EPSILON = 0.2
 DELTA = 0.1

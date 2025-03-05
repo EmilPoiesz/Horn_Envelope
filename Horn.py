@@ -1,7 +1,7 @@
 from sympy import *
 import functools
 import timeit
-import Binary_parser
+import parsers.binary_parser as Binary_parser
 
 def evaluate(clause, x, V):
     """
@@ -140,7 +140,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
         if verbose ==2:
             signed_counterexample = '+' if positive_counterexample_flag else '-'
             print(f'\nIteration: {abs(iterations)}\n\n' + 
-                  f'({sample_number}) Counterexample: ({signed_counterexample}) {binary_parser.sentence_from_binary(counterexample)}\n\n'+
+                  f'({sample_number}) Counterexample: ({signed_counterexample}) {binary_parser.binary_to_sentence(counterexample)}\n\n'+
                   f'New Hypothesis H: {sorted([str(h) for h in H if h not in background])}\n\n' +
                   f'New Hypothesis Q: {[q for q in Q]}\n\n' +
                   f'New Hypothesis length: {len(H)+len(Q)-len(background)} + background: {len(background)}\n\n' +

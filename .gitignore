@@ -141,6 +141,7 @@ Old
 horn_env
 test*
 
+!results/*
 !data/occupations.csv
 !data/known_countries.csv
 !data/extracted_occupations/*
