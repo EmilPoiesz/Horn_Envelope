@@ -5,7 +5,7 @@
 ######################################################################################
 
 import pandas as pd
-from config import AGE_CONTAINERS
+from parsers.config import AGE_CONTAINERS
     
 def get_birthyear_container(age_containers, birthyear):
 
