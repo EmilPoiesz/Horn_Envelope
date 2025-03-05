@@ -247,9 +247,11 @@ if __name__ == '__main__':
             (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
             metadata = {'head' : {'model' : language_model, 'experiment' : i+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
             
-            with open('data/rule_extraction/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:
+            print(type(list(H)[0]))
+            print(list(H)[0])
+            with open('results/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:
                 json.dump(metadata, outfile)
-            with open('data/rule_extraction/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.txt', 'wb') as f:
+            with open('results/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.txt', 'wb') as f:
                 pickle.dump(H, f)
         elif args.mode == 'modern_model':
             (sentences, runtime) = using_modern_model(language_model)
