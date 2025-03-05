@@ -155,7 +155,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
         iteration_data['runtime'] = stop-start
         metadata.append(iteration_data)
         if iterations % 5 == 0:
-            sentence = "iteration = {eq}\tlen(H) = {h}\truntime = {rt}\n".format(eq = 5000 - iterations, h=len(H.union(Q)), rt = iteration_data['runtime'])
+            sentence = f"iteration = {iterations}\tlen(H) = {len(H.union(Q))}\truntime = {iteration_data['runtime']}\n"
             with open('output.txt', 'a') as f:
                 f.write(sentence)
     
