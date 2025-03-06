@@ -3,7 +3,7 @@ import numpy as np
 
 from . import config
 
-class Binary_parser:
+class BinaryParser:
     """
         Converts a datapoint in the extracted dataset to a binary vector and vice-versa. 
         Binary senquences represent: [BIRTH -- CONTINENT -- OCCUPATION] int this order.

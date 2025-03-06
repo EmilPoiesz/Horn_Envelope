@@ -1,6 +1,6 @@
 import pickle
 from sympy import *
-from parsers.binary_parser import Binary_parser
+from parsers.binary_parser import BinaryParser
 import json
 import pandas as pd
 

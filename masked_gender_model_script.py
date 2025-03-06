@@ -6,7 +6,7 @@ import torch
 import json
 
 from argparse import ArgumentParser
-from parsers.binary_parser import Binary_parser
+from parsers.binary_parser import BinaryParser
 from parsers.equation_parser import EquationParser
 from Horn import evaluate, learn_horn_envelope, learn_llama
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
@@ -97,7 +97,7 @@ def get_attribute_vector(length, allow_zero=True):
     attribute_vector[random.randint(0, length-1)] = 1
     return attribute_vector
 
-def create_sample(binary_parser:Binary_parser, unmasking_model, verbose=False):
+def create_sample(binary_parser:BinaryParser, unmasking_model, verbose=False):
     
     # Generate sample vector
     sample_vector = []
@@ -133,7 +133,7 @@ def equivalence_oracle(hypothesis, unmasking_model, V, hypothesis_space, binary_
     # No counterexample was found, the hypothesis is true.
     return True
 
-def membership_oracle(assignment, unmasking_model, binary_parser:Binary_parser):
+def membership_oracle(assignment, unmasking_model, binary_parser:BinaryParser):
     sample_vector = assignment[:-2]
     gender_vector = assignment[-2:]
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     
     # The binary parser is used to convert the data into a binary format that can be used by the Horn algorithm.
-    binary_parser = Binary_parser()
+    binary_parser = BinaryParser()
     attributes = ['birth', 'continent', 'occupation']
 
     # Define variables
