@@ -1,13 +1,15 @@
-{
+[
+  {
     "rules": [
-        "(She ∧ after₁₉₇₀) → (Asia ∧ She ∧ after₁₉₇₀ ∧ nurse)",
-        "¬(Europe ∧ She ∧ between_1925_and_1951 ∧ singer)",
-        "(She ∧ South_America ∧ between_1875_and_1925) → (She ∧ South_America ∧ between_1875_and_1925 ∧ nurse)",
-        "¬(She ∧ lawyer)",
-        "¬(He ∧ nurse)",
-        "¬(Africa ∧ He ∧ singer)",
-        "(Asia ∧ She) → (Asia ∧ She ∧ after₁₉₇₀ ∧ nurse)",
-        "¬(He ∧ Oceania ∧ singer)",
-        "(Asia ∧ He ∧ singer) → (Asia ∧ He ∧ between_1951_and_1970 ∧ singer)"
+      "¬(He ∧ nurse)",
+      "¬(North_America ∧ She)",
+      "(Africa ∧ She) → nurse",
+      "(Born_before_1875 ∧ She) → (Europe ∧ nurse)",
+      "(Born_between_1875_and_1925 ∧ She) → (Europe ∧ nurse)",
+      "¬(She ∧ blacksmith)",
+      "¬(He ∧ South_America ∧ singer)",
+      "(Born_between_1951_and_1970 ∧ She) → nurse",
+      "¬(Oceania ∧ She)"
     ]
-}
+  }
+]
