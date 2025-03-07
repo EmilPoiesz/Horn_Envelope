@@ -21,7 +21,7 @@ class EquationParser:
         variable_values.extend(binary_parser.features['occupations'])
         variable_values.extend(['She', 'He'])
         
-        self.mapping = {f'{self.V[i]}': str(variable_values[i]).replace(' ', '_') for i in range(len(V))}
+        self.mapping = {f'{V[i]}': str(variable_values[i]).replace(' ', '_') for i in range(len(V))}
 
 
     def parse(self, equation):

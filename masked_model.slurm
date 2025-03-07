@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=horn_learner
 #SBATCH --account=ec30
-#SBATCH --time=00:30:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --mem-per-cpu=4G
 #
@@ -9,7 +9,7 @@
 # advantage of them; for larger computations, maybe use between
 # six and ten; at some point, we will look at how to run on GPUs
 #
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=10
 
 # NB: this script should be run with "sbatch sample.slurm"!
 # See https://www.uio.no/english/services/it/research/platforms/edu-research/help/fox/jobs/submitting.md

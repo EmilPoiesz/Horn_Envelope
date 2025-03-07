@@ -260,6 +260,7 @@ if __name__ == '__main__':
             with open('results/' + language_model + '_rulesTEST_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
                 json.dump({'rules':H_1}, f, ensure_ascii=False)
         elif args.mode == 'modern_model':
+            
             (sentences, runtime) = using_modern_model(language_model)
             print("Runtime: ", runtime)
         else:
