@@ -235,11 +235,7 @@ if __name__ == '__main__':
     if args.iterations == None: iterations = pac_hypothesis_space
     else: iterations = args.iterations
     
-    #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-    if args.mode == 'masked_model':
-        models = ['roberta-base']
-    else:
-        models = ['meta-llama/Llama-3.1-8B']
+    models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
 
     for i, language_model in enumerate(models):
         if args.mode == 'masked_model':
@@ -257,7 +253,7 @@ if __name__ == '__main__':
                 json.dump(metadata, outfile)
             with open('results/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
                 json.dump({'rules':H_}, f)
-            with open('results/' + language_model + '_rulesTEST_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
+            with open('results/' + language_model + '_human_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
                 json.dump({'rules':H_1}, f, ensure_ascii=False)
         elif args.mode == 'modern_model':
             

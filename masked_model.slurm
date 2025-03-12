@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=horn_learner
 #SBATCH --account=ec30
-#SBATCH --time=24:00:00
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --mem-per-cpu=4G
 #
@@ -29,4 +29,4 @@ module load Transformers/4.39.3-gfbf-2023a
 module load sympy/1.12-gfbf-2023a
 
 
-python3 masked_gender_model_script.py ${@}
+python3 learn_masked_model.py ${@}
