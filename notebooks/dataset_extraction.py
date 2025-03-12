@@ -2,7 +2,7 @@ import requests
 import os
 import pandas as pd
 
-from parsers.config import SPARQL_QUERIES, URL, HEADERS
+from config import SPARQL_QUERIES, URL, HEADERS
 
 
 def send_query(query):

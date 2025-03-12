@@ -6,11 +6,10 @@ import torch
 import json
 
 from argparse import ArgumentParser
-from parsers.binary_parser import BinaryParser
-from parsers.equation_parser import EquationParser
+from Parsers import BinaryParser, EquationParser
 from Horn import evaluate, learn_horn_envelope, learn_llama
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from parsers.config import EPSILON, DELTA
+from config import EPSILON, DELTA
 
 def make_disjoint(V):
     """

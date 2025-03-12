@@ -1,7 +1,7 @@
-import pandas as pd
 import numpy as np
+import sympy
 
-from . import config
+from config import FEATURES
 
 class BinaryParser:
     """
@@ -15,7 +15,7 @@ class BinaryParser:
             The filepath to import the occupations.
     """
     def __init__(self):
-        self.features = config.FEATURES
+        self.features = FEATURES
         self.lengths = {'birth': len(self.features['age_containers'])+1, 
                         'continent': len(self.features['continents']), 
                         'occupation': len(self.features['occupations']),
@@ -79,3 +79,31 @@ class BinaryParser:
         if index <= self.lengths['birth'] + self.lengths['continent'] + self.lengths['occupation']: return self.features['occupations'][index - self.lengths['birth'] - self.lengths['continent']]
         return 'He' if index == self.total_length - 1 else 'She'
 
+class EquationParser:
+    """
+    Parses sympy equations to a human readable format.
+
+    Args:
+        binary_parser: BinaryParser 
+            Contains all binary features we are solving for.
+        V: list              
+            All the sympy variables used.
+
+    """
+    
+    def __init__(self, binary_parser: BinaryParser, V: list):
+        
+        variable_values = ['Born ' + binary_parser.parse_birth(i) for i in range(binary_parser.lengths['birth'])]
+        variable_values.extend(binary_parser.features['continents'])
+        variable_values.extend(binary_parser.features['occupations'])
+        variable_values.extend(['She', 'He'])
+        
+        self.mapping = {f'{V[i]}': str(variable_values[i]).replace(' ', '_') for i in range(len(V))}
+
+
+    def parse(self, equation):
+        if type(equation) == sympy.Implies:
+            antecedent, consequent = equation.args
+            consequent = list(set(consequent.args).difference(set(antecedent.args)))
+            equation = sympy.Implies(antecedent, sympy.And(*consequent))
+        return sympy.pretty(equation.subs(self.mapping))

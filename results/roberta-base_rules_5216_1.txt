@@ -1,1 +1,0 @@
-{"rules": ["Not(And(v0, v24, v27))", "Not(And(v14, v25, v27))", "Not(v26)"]}
