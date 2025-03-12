@@ -142,6 +142,7 @@ horn_env
 test*
 
 !results/*
+!results/human_rules/*
 !data/occupations.csv
 !data/known_countries.csv
 !data/extracted_occupations/*
