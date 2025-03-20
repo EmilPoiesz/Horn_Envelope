@@ -1,7 +1,7 @@
 from sympy import *
 import functools
 import timeit
-import parsers.binary_parser as Binary_parser
+import Parsers as Binary_parser
 
 def evaluate(clause, x, V):
     """
@@ -162,7 +162,7 @@ def learn_horn_envelope(V:list, ask_membership_oracle, ask_equivalence_oracle, b
     terminated = iterations != 0  
     return (terminated, metadata, H, Q)
 
-def learn_llama(ask_membership_oracle, iterations = 3):
+def learn_llama(ask_membership_oracle, iterations = 1):
     
     sentences = []
     while iterations!=0:

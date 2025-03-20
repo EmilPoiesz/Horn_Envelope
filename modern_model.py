@@ -216,7 +216,6 @@ def using_modern_model(model_id):
 if __name__ == '__main__':
 
     argparser = ArgumentParser()
-    argparser.add_argument('--mode', type=str, default='masked_model', help='The language model to use')
     argparser.add_argument('--iterations', type=int, default=None)
     args = argparser.parse_args()
     
@@ -234,31 +233,10 @@ if __name__ == '__main__':
     if args.iterations == None: iterations = pac_hypothesis_space
     else: iterations = args.iterations
     
-    models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
-
-    for i, language_model in enumerate(models):
-        if args.mode == 'masked_model':
+    #models = ['roberta-base', 'roberta-large', 'bert-base-cased', 'bert-large-cased']
+          
+    language_model = "mistralai/Mistral-7B-Instruct-v0.2"
+    (sentences, runtime) = using_modern_model(language_model)
+    print("Runtime: ", runtime)
         
-            (H, Q, runtime, terminated, average_samples) = using_unmasking_model(language_model, V, iterations, binary_parser, background, pac_hypothesis_space, verbose=2)
-            metadata = {'head' : {'model' : language_model, 'experiment' : i+1},'data' : {'runtime' : runtime, 'average_sample' : average_samples, "terminated" : terminated}}
-            
-            
-            H_ = [sympy.pretty(line, use_unicode=False) for line in list(H)]
-            
-            eq_parser = EquationParser(binary_parser, V)
-            H_1 = [eq_parser.parse(line) for line in H]
-
-            with open('results/' + language_model + '_metadata_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as outfile:
-                json.dump(metadata, outfile)
-            with open('results/' + language_model + '_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
-                json.dump({'rules':H_}, f)
-            with open('results/' + language_model + '_human_rules_' + str(pac_hypothesis_space) + "_" + str(i+1) + '.json', 'w') as f:
-                json.dump({'rules':H_1}, f, ensure_ascii=False)
-        elif args.mode == 'modern_model':
-            
-            (sentences, runtime) = using_modern_model(language_model)
-            print("Runtime: ", runtime)
-        else:
-            print("Invalid mode. Please use 'masked_model' or 'modern_model' as the mode.")
-            break
         

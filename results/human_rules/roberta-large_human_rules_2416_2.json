@@ -1,1 +1,33 @@
-{"rules": ["¬(Born_between_1951_and_1970 ∧ He ∧ singer)", "(He ∧ North_America ∧ singer) → Born_before_1875", "¬(Born_before_1875 ∧ She ∧ violinist)", "¬(He ∧ fashion_designer)", "(Born_between_1875_and_1925 ∧ She ∧ violinist) → Oceania", "(Asia ∧ He ∧ singer) → Born_before_1875", "¬(He ∧ nurse)", "¬(He ∧ dancer)", "(Born_before_1875 ∧ She ∧ singer) → Oceania", "¬(Born_between_1925_and_1951 ∧ He ∧ singer)", "¬(She ∧ industrialist)", "¬(He ∧ Oceania ∧ singer)", "(Africa ∧ He ∧ singer) → Born_before_1875", "¬(Born_between_1925_and_1951 ∧ He ∧ South_America ∧ violinist)", "(Europe ∧ He ∧ singer) → Born_before_1875", "¬(Africa ∧ She ∧ violinist)", "¬(Born_between_1925_and_1951 ∧ He ∧ North_America ∧ violinist)", "¬(Born_after_1970 ∧ He ∧ singer)", "¬(Asia ∧ Born_between_1925_and_1951 ∧ She ∧ violinist)", "¬(Born_between_1951_and_1970 ∧ He ∧ North_America ∧ violinist)", "(Born_after_1970 ∧ She ∧ violinist) → Oceania", "¬(Asia ∧ Born_between_1951_and_1970 ∧ She ∧ violinist)", "(He ∧ South_America ∧ singer) → Born_before_1875", "(He ∧ Oceania ∧ violinist) → Born_before_1875", "¬(Born_between_1925_and_1951 ∧ Europe ∧ He ∧ violinist)", "¬(Born_between_1951_and_1970 ∧ He ∧ South_America ∧ violinist)", "¬(She ∧ footballer)", "¬(She ∧ boxer)", "¬(Born_between_1951_and_1970 ∧ Europe ∧ He ∧ violinist)"]}
+{
+    "rules": [
+        "¬(Born_between_1951_and_1970 ∧ He ∧ singer)",
+        "(He ∧ North_America ∧ singer) → Born_before_1875",
+        "¬(Born_before_1875 ∧ She ∧ violinist)",
+        "¬(He ∧ fashion_designer)",
+        "(Born_between_1875_and_1925 ∧ She ∧ violinist) → Oceania",
+        "(Asia ∧ He ∧ singer) → Born_before_1875",
+        "¬(He ∧ nurse)",
+        "¬(He ∧ dancer)",
+        "(Born_before_1875 ∧ She ∧ singer) → Oceania",
+        "¬(Born_between_1925_and_1951 ∧ He ∧ singer)",
+        "¬(She ∧ industrialist)",
+        "¬(He ∧ Oceania ∧ singer)",
+        "(Africa ∧ He ∧ singer) → Born_before_1875",
+        "¬(Born_between_1925_and_1951 ∧ He ∧ South_America ∧ violinist)",
+        "(Europe ∧ He ∧ singer) → Born_before_1875",
+        "¬(Africa ∧ She ∧ violinist)",
+        "¬(Born_between_1925_and_1951 ∧ He ∧ North_America ∧ violinist)",
+        "¬(Born_after_1970 ∧ He ∧ singer)",
+        "¬(Asia ∧ Born_between_1925_and_1951 ∧ She ∧ violinist)",
+        "¬(Born_between_1951_and_1970 ∧ He ∧ North_America ∧ violinist)",
+        "(Born_after_1970 ∧ She ∧ violinist) → Oceania",
+        "¬(Asia ∧ Born_between_1951_and_1970 ∧ She ∧ violinist)",
+        "(He ∧ South_America ∧ singer) → Born_before_1875",
+        "(He ∧ Oceania ∧ violinist) → Born_before_1875",
+        "¬(Born_between_1925_and_1951 ∧ Europe ∧ He ∧ violinist)",
+        "¬(Born_between_1951_and_1970 ∧ He ∧ South_America ∧ violinist)",
+        "¬(She ∧ footballer)",
+        "¬(She ∧ boxer)",
+        "¬(Born_between_1951_and_1970 ∧ Europe ∧ He ∧ violinist)"
+    ]
+}
